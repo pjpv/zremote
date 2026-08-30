@@ -25,3 +25,18 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
+
+  # iOS 可构建性巡检：macOS 出未签名包，防 iOS 侧悄悄烂掉
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.38.5
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+      - run: flutter build ios --release --no-codesign

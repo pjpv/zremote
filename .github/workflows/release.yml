@@ -52,3 +52,40 @@ jobs:
         with:
           generate_release_notes: true
           files: build/app/outputs/flutter-apk/app-release.apk
+
+  # iOS 出未签名 IPA：无 Apple 开发者账号也可分发，用户自行签名侧载
+  ipa:
+    needs: apk
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.38.5
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+      - run: flutter build ios --release --no-codesign
+
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p build/Payload
+          cp -R build/ios/iphoneos/Runner.app build/Payload/Runner.app
+          ditto -c -k --keepParent build/Payload zremote-ios-unsigned.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zremote-ios-unsigned-ipa
+          path: zremote-ios-unsigned.ipa
+
+      - name: Attach unsigned IPA to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          append_body: true
+          body: |
+            > **iOS 包 `zremote-ios-unsigned.ipa` 为未签名包，无法直接安装。**
+            > 请使用 [AltStore](https://altstore.io) / [Sideloadly](https://sideloadly.io) / TrollStore 等工具，
+            > 用自己的 Apple ID 签名后侧载（免费账号 7 天需重新签名）。
+          files: zremote-ios-unsigned.ipa
