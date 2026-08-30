@@ -2,6 +2,10 @@
 
 ZCode 桌面端远程控制的手机伴侣 App。电脑端出示二维码，手机扫码一次导入，即可长期使用；多台设备并行管理，一个界面随时切换。
 
+<p align="center">
+  <img src="docs/screenshot.jpg" width="280" alt="ZRemote App 界面" />
+</p>
+
 ## 功能
 
 - **扫码 / 粘贴导入** —— 电脑端出示的远程控制链接，扫码或粘贴即可导入设备
