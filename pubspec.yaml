@@ -2,13 +2,15 @@ name: zremote
 description: "ZRemote — ZCode 桌面端远程控制伴侣 App：扫码导入，多设备并行会话，生物识别门禁。"
 publish_to: 'none'
 
-version: 1.1.0+3
+version: 1.2.0+4
 
 environment:
   sdk: ^3.10.4
 
 dependencies:
   flutter:
+    sdk: flutter
+  flutter_localizations:
     sdk: flutter
 
   cupertino_icons: ^1.0.8
@@ -31,6 +33,8 @@ dev_dependencies:
 flutter:
 
   uses-material-design: true
+
+  generate: true
 
   assets:
     - assets/brand/mark.png

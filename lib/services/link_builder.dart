@@ -48,7 +48,7 @@ class LinkBuilder {
       id: id ?? const Uuid().v4(),
       baseUrl: base.toString(),
       params: params,
-      label: label == null || label.isEmpty ? '未命名设备' : label,
+      label: label ?? '',
       createdAt: now ?? DateTime.now(),
     );
   }

@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'l10n/app_localizations.dart';
+import 'models/device_label.dart';
 import 'services/biometric.dart';
+import 'services/device_store.dart';
 import 'services/notifier.dart';
+import 'state/locale.dart';
 import 'state/session_pool.dart';
 import 'theme.dart';
 import 'state/app_lifecycle.dart';
@@ -11,7 +15,17 @@ import 'ui/app_shell.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await NotifierService.instance.init();
-  runApp(const ProviderScope(child: ZRemoteApp()));
+  final initialLocale = await DeviceStore.instance.localeSetting();
+  runApp(
+    ProviderScope(
+      overrides: [
+        localeSettingProvider.overrideWith(
+          () => LocaleSettingNotifier(initial: initialLocale),
+        ),
+      ],
+      child: const ZRemoteApp(),
+    ),
+  );
 }
 
 class ZRemoteApp extends ConsumerWidget {
@@ -19,10 +33,14 @@ class ZRemoteApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final setting = ref.watch(localeSettingProvider);
     return MaterialApp(
       title: 'ZRemote',
       debugShowCheckedModeBanner: false,
       theme: ZT.theme(),
+      locale: setting == kLocaleSystem ? null : Locale(setting),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: const LifecycleWatcher(child: AppShell()),
       builder: (context, child) => BiometricGate(child: child!),
     );
@@ -122,7 +140,8 @@ class _BiometricGateState extends ConsumerState<BiometricGate>
     if (_authenticating) return;
     _authenticating = true;
     try {
-      final ok = await widget.authenticate('验证以解锁 ZRemote');
+      final reason = (AppLocalizations.of(context) ?? l10nZh).unlockReason;
+      final ok = await widget.authenticate(reason);
       if (mounted && ok) setState(() => _authed = true);
     } catch (_) {
     } finally {
@@ -134,6 +153,7 @@ class _BiometricGateState extends ConsumerState<BiometricGate>
   Widget build(BuildContext context) {
     final enabled = ref.watch(biometricProvider);
     final locked = enabled && !_authed && _startupGraceElapsed;
+    final l10n = AppLocalizations.of(context) ?? l10nZh;
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -178,9 +198,9 @@ class _BiometricGateState extends ConsumerState<BiometricGate>
                                     ),
                                   ),
                                   const SizedBox(height: 8),
-                                  const Text(
-                                    '已锁定',
-                                    style: TextStyle(
+                                  Text(
+                                    l10n.lockTitle,
+                                    style: const TextStyle(
                                       fontSize: 24,
                                       fontWeight: FontWeight.w700,
                                       color: ZT.textHi,
@@ -190,7 +210,7 @@ class _BiometricGateState extends ConsumerState<BiometricGate>
                                   FilledButton.icon(
                                     onPressed: _unlock,
                                     icon: const Icon(Icons.lock_open, size: 18),
-                                    label: const Text('解锁'),
+                                    label: Text(l10n.unlockButton),
                                   ),
                                 ],
                               ),

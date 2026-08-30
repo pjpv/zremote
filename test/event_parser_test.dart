@@ -1,5 +1,7 @@
+import 'package:flutter/widgets.dart' show Locale;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zremote/l10n/app_localizations.dart';
 import 'package:zremote/models/device.dart';
 import 'package:zremote/services/event_observer.dart';
 import 'package:zremote/models/notification_prefs.dart';
@@ -192,6 +194,27 @@ void main() {
         const ObservedEvent(type: 'permission_request'),
       )!;
       expect(spec.title, '[x] 会话 请求批准');
+    });
+
+    test('l10n 缺省回退 zh 模板（冷启动链路安全）', () {
+      final spec = NotificationSpec.from(
+        _device('x'),
+        const ObservedEvent(type: 'completed', sessionTitle: 'hi'),
+      )!;
+      expect(spec.channelName, '任务完成');
+      expect(spec.title, '[x] hi 已完成');
+    });
+
+    test('传 en 实例走英文文案；未命名设备本地化兜底', () {
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      final spec = NotificationSpec.from(
+        _device(''),
+        const ObservedEvent(type: 'permission_request', sessionTitle: 'hi'),
+        l10n,
+      )!;
+      expect(spec.channelName, 'Approval requests');
+      expect(spec.title, '[Unnamed device] hi needs your approval');
+      expect(spec.body, 'An agent action is waiting for your approval');
     });
   });
 

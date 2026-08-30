@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/device.dart';
 import '../services/keepalive.dart';
 import '../services/link_builder.dart';
@@ -11,6 +12,7 @@ import '../state/keepalive.dart';
 import '../state/session_status.dart';
 import '../state/event_feed.dart';
 import '../theme.dart';
+import '../models/device_label.dart';
 import 'section_label.dart';
 import 'settings_page.dart';
 import 'unread_badge.dart';
@@ -21,6 +23,7 @@ class ManagePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final devices = ref.watch(deviceListProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       body: SafeArea(
@@ -46,11 +49,11 @@ class ManagePage extends ConsumerWidget {
                 ],
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(4, 4, 4, 0),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
               child: Text(
-                '设备管理',
-                style: TextStyle(
+                l10n.manageTitle,
+                style: const TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.5,
@@ -62,7 +65,7 @@ class ManagePage extends ConsumerWidget {
             if (devices.isEmpty)
               _EmptyHint(onScan: () => _openScanner(context, ref))
             else ...[
-              SectionLabel('设备 · ${devices.length}'),
+              SectionLabel(l10n.devicesCount(devices.length)),
               ...devices.map((d) => _DeviceCard(device: d)),
             ],
             const SizedBox(height: 12),
@@ -76,7 +79,7 @@ class ManagePage extends ConsumerWidget {
         children: [
           FloatingActionButton.small(
             heroTag: 'paste',
-            tooltip: '粘贴链接导入',
+            tooltip: l10n.importPasteTooltip,
             onPressed: () => _showPasteDialog(context, ref),
             child: const Icon(Icons.content_paste, size: 20),
           ),
@@ -85,7 +88,7 @@ class ManagePage extends ConsumerWidget {
             heroTag: 'scan',
             onPressed: () => _openScanner(context, ref),
             icon: const Icon(Icons.qr_code_scanner),
-            label: const Text('扫码导入'),
+            label: Text(l10n.importScanLabel),
           ),
         ],
       ),
@@ -103,10 +106,11 @@ class ManagePage extends ConsumerWidget {
 
   Future<void> _showPasteDialog(BuildContext context, WidgetRef ref) async {
     final controller = TextEditingController();
+    final l10n = AppLocalizations.of(context)!;
     final ok = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('粘贴控制链接'),
+        title: Text(l10n.pasteDialogTitle),
         content: TextField(
           controller: controller,
           maxLines: 3,
@@ -119,11 +123,11 @@ class ManagePage extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('取消'),
+            child: Text(l10n.commonCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('导入'),
+            child: Text(l10n.importButton),
           ),
         ],
       ),
@@ -141,25 +145,23 @@ class ManagePage extends ConsumerWidget {
     if (device == null) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('导入失败：链接需包含 sid 和 hash 参数')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.importFailed)),
         );
       }
       return;
     }
     final devices = ref.read(deviceListProvider);
     if (devices.length == 5 && context.mounted) {
+      final l10n = AppLocalizations.of(context)!;
       await showDialog<void>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: const Text('设备较多'),
-          content: const Text(
-            '同时保活的 WebView 会话越多内存占用越高，'
-            '6 台以上在低配手机上可能被系统回收后台。确定继续？',
-          ),
+          title: Text(l10n.manyDevicesTitle),
+          content: Text(l10n.manyDevicesBody),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('知道了'),
+              child: Text(l10n.commonGotIt),
             ),
           ],
         ),
@@ -177,6 +179,7 @@ class _EmptyHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(24),
@@ -197,26 +200,25 @@ class _EmptyHint extends StatelessWidget {
             child: const Icon(Icons.qr_code_2, size: 32, color: ZT.accent),
           ),
           const SizedBox(height: 14),
-          const Text(
-            '还没有接入设备',
-            style: TextStyle(
+          Text(
+            l10n.emptyTitle,
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
               color: ZT.textHi,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            '在电脑端 ZCode 打开「移动端远程控制」，'
-            '用二维码或控制链接把这台电脑接入。一次导入，长期有效。',
+          Text(
+            l10n.emptyBody,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, height: 1.5, color: ZT.textLo),
+            style: const TextStyle(fontSize: 13, height: 1.5, color: ZT.textLo),
           ),
           const SizedBox(height: 16),
           FilledButton.icon(
             onPressed: onScan,
             icon: const Icon(Icons.qr_code_scanner, size: 18),
-            label: const Text('扫码导入'),
+            label: Text(l10n.importScanLabel),
           ),
         ],
       ),
@@ -233,6 +235,7 @@ class _DeviceCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final status = ref.watch(sessionStatusProvider)[device.id];
     final feed = ref.watch(eventFeedProvider)[device.id];
+    final l10n = AppLocalizations.of(context)!;
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -264,7 +267,7 @@ class _DeviceCard extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      device.label,
+                      device.displayName(l10n),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -275,7 +278,9 @@ class _DeviceCard extends ConsumerWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      '于 ${device.createdAt.month}/${device.createdAt.day} 接入',
+                      l10n.deviceAddedOn(
+                        '${device.createdAt.month}/${device.createdAt.day}',
+                      ),
                       style: const TextStyle(fontSize: 12, color: ZT.textLo),
                     ),
                   ],
@@ -283,7 +288,11 @@ class _DeviceCard extends ConsumerWidget {
               ),
               UnreadBadge(feed: feed),
               Tooltip(
-                message: ZT.statusLabel(status),
+                message: switch (status) {
+                  SessionStatus.live => l10n.statusLive,
+                  SessionStatus.error => l10n.statusError,
+                  SessionStatus.loading || null => l10n.statusConnecting,
+                },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   margin: const EdgeInsets.symmetric(horizontal: 10),
@@ -310,10 +319,13 @@ class _DeviceCard extends ConsumerWidget {
                       await _confirmDelete(context, ref);
                   }
                 },
-                itemBuilder: (_) => const [
-                  PopupMenuItem(value: 'open', child: Text('打开会话')),
-                  PopupMenuItem(value: 'rename', child: Text('重命名')),
-                  PopupMenuItem(value: 'delete', child: Text('删除')),
+                itemBuilder: (_) => [
+                  PopupMenuItem(
+                    value: 'open',
+                    child: Text(l10n.menuOpenSession),
+                  ),
+                  PopupMenuItem(value: 'rename', child: Text(l10n.menuRename)),
+                  PopupMenuItem(value: 'delete', child: Text(l10n.menuDelete)),
                 ],
               ),
             ],
@@ -325,19 +337,20 @@ class _DeviceCard extends ConsumerWidget {
 
   Future<void> _rename(BuildContext context, WidgetRef ref) async {
     final controller = TextEditingController(text: device.label);
+    final l10n = AppLocalizations.of(context)!;
     final name = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('重命名设备'),
+        title: Text(l10n.renameDialogTitle),
         content: TextField(controller: controller, autofocus: true),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('取消'),
+            child: Text(l10n.commonCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, controller.text),
-            child: const Text('保存'),
+            child: Text(l10n.commonSave),
           ),
         ],
       ),
@@ -348,18 +361,16 @@ class _DeviceCard extends ConsumerWidget {
   }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
     final ok = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text('删除 ${device.label}？'),
-        content: const Text(
-          '仅移除本机保存的身份，不影响电脑端。'
-          '需要时重新扫码即可。',
-        ),
+        title: Text(l10n.deleteDeviceTitle(device.displayName(l10n))),
+        content: Text(l10n.deleteDeviceBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('取消'),
+            child: Text(l10n.commonCancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
@@ -367,7 +378,7 @@ class _DeviceCard extends ConsumerWidget {
               foregroundColor: Colors.white,
             ),
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('删除'),
+            child: Text(l10n.menuDelete),
           ),
         ],
       ),
@@ -427,19 +438,23 @@ class _SettingsEntryState extends ConsumerState<_SettingsEntry> {
             borderRadius: BorderRadius.circular(12),
             color: ZT.accent.withValues(alpha: 0.10),
           ),
-          child: const Icon(Icons.settings_outlined, size: 20, color: ZT.accent),
+          child: const Icon(
+            Icons.settings_outlined,
+            size: 20,
+            color: ZT.accent,
+          ),
         ),
-        title: const Text(
-          '设置',
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        title: Text(
+          AppLocalizations.of(context)!.settingsEntryTitle,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
-        subtitle: const Text(
-          '安全 · 后台 · 通知提醒',
-          style: TextStyle(fontSize: 12),
+        subtitle: Text(
+          AppLocalizations.of(context)!.settingsEntrySubtitle,
+          style: const TextStyle(fontSize: 12),
         ),
         trailing: _risk
             ? Tooltip(
-                message: '通知链路受限，点开设置查看',
+                message: AppLocalizations.of(context)!.settingsEntryRisk,
                 child: const Icon(
                   Icons.warning_amber_rounded,
                   size: 20,
@@ -447,9 +462,9 @@ class _SettingsEntryState extends ConsumerState<_SettingsEntry> {
                 ),
               )
             : const Icon(Icons.chevron_right, color: ZT.textLo),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => const SettingsPage()),
-        ),
+        onTap: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute<void>(builder: (_) => const SettingsPage())),
       ),
     );
   }
@@ -474,7 +489,7 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: const Text('扫描二维码'),
+        title: Text(AppLocalizations.of(context)!.scannerTitle),
         flexibleSpace: const DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -508,9 +523,9 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
                   color: Colors.black.withValues(alpha: 0.54),
                   borderRadius: BorderRadius.circular(22),
                 ),
-                child: const Text(
-                  '对准电脑端显示的远程控制二维码',
-                  style: TextStyle(fontSize: 13, color: Colors.white70),
+                child: Text(
+                  AppLocalizations.of(context)!.scannerHint,
+                  style: const TextStyle(fontSize: 13, color: Colors.white70),
                 ),
               ),
             ),
@@ -535,7 +550,7 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
     if (device == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('不是有效的远程控制二维码（缺少 sid/hash）')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.invalidQr)),
         );
       }
       return;

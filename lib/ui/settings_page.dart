@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../l10n/app_localizations.dart';
 import '../services/biometric.dart';
 import '../services/keepalive.dart';
 import '../state/app_lifecycle.dart';
+import '../state/locale.dart';
 import '../state/notification_prefs.dart';
 import '../state/keepalive.dart';
 import '../state/session_pool.dart';
@@ -16,6 +18,7 @@ class SettingsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -31,9 +34,9 @@ class SettingsPage extends ConsumerWidget {
                     icon: const Icon(Icons.arrow_back, color: ZT.textLo),
                   ),
                   const SizedBox(width: 2),
-                  const Text(
-                    '设置',
-                    style: TextStyle(
+                  Text(
+                    l10n.settingsTitle,
+                    style: const TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.5,
@@ -44,14 +47,17 @@ class SettingsPage extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 8),
-            const SectionLabel('安全'),
+            SectionLabel(l10n.sectionGeneral),
+            const _LanguageTile(),
+            const SizedBox(height: 12),
+            SectionLabel(l10n.sectionSecurity),
             const _BiometricTile(),
             const SizedBox(height: 12),
-            const SectionLabel('后台'),
+            SectionLabel(l10n.sectionBackground),
             const _KeepAliveTile(),
             const _BatteryTile(),
             const SizedBox(height: 12),
-            const SectionLabel('通知'),
+            SectionLabel(l10n.sectionNotifications),
             const _NotificationCard(),
             const _VersionFooter(),
           ],
@@ -61,12 +67,95 @@ class SettingsPage extends ConsumerWidget {
   }
 }
 
+class _LanguageTile extends ConsumerWidget {
+  const _LanguageTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final setting = ref.watch(localeSettingProvider);
+    final current = setting == kLocaleSystem
+        ? l10n.languageSystem
+        : localeDisplayName(setting);
+    return Card(
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        leading: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: ZT.accent.withValues(alpha: 0.10),
+          ),
+          child: const Icon(Icons.language, size: 22, color: ZT.accent),
+        ),
+        title: Text(
+          l10n.languageTitle,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        ),
+        subtitle: Text(current, style: const TextStyle(fontSize: 12)),
+        trailing: const Icon(Icons.chevron_right, color: ZT.textLo),
+        onTap: () => _pick(context, ref),
+      ),
+    );
+  }
+
+  Future<void> _pick(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
+    final setting = ref.read(localeSettingProvider);
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: Text(l10n.languageTitle),
+        children: [
+          _option(
+            dialogContext,
+            kLocaleSystem,
+            l10n.languageSystem,
+            setting == kLocaleSystem,
+          ),
+          for (final locale in AppLocalizations.supportedLocales)
+            _option(
+              dialogContext,
+              locale.languageCode,
+              localeDisplayName(locale.languageCode),
+              setting == locale.languageCode,
+            ),
+        ],
+      ),
+    );
+    if (choice == null || choice == setting) return;
+    await ref.read(localeSettingProvider.notifier).set(choice);
+  }
+
+  Widget _option(
+    BuildContext context,
+    String value,
+    String label,
+    bool selected,
+  ) => SimpleDialogOption(
+    onPressed: () => Navigator.pop(context, value),
+    child: Row(
+      children: [
+        Icon(
+          selected ? Icons.check_circle : Icons.radio_button_unchecked,
+          size: 20,
+          color: selected ? ZT.accent : ZT.textLo,
+        ),
+        const SizedBox(width: 12),
+        Text(label, style: const TextStyle(fontSize: 14)),
+      ],
+    ),
+  );
+}
+
 class _BiometricTile extends ConsumerWidget {
   const _BiometricTile();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final enabled = ref.watch(biometricProvider);
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: SwitchListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
@@ -79,11 +168,14 @@ class _BiometricTile extends ConsumerWidget {
           ),
           child: const Icon(Icons.fingerprint, color: ZT.accent),
         ),
-        title: const Text(
-          '生物识别锁',
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        title: Text(
+          l10n.biometricLockTitle,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
-        subtitle: const Text('启动与离开较久后回到前台需验证', style: TextStyle(fontSize: 12)),
+        subtitle: Text(
+          l10n.biometricLockSubtitle,
+          style: const TextStyle(fontSize: 12),
+        ),
         activeThumbColor: ZT.accent,
         value: enabled,
         onChanged: (value) => _toggle(context, ref, value),
@@ -92,6 +184,7 @@ class _BiometricTile extends ConsumerWidget {
   }
 
   Future<void> _toggle(BuildContext context, WidgetRef ref, bool value) async {
+    final l10n = AppLocalizations.of(context)!;
     void toast(String msg) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
@@ -99,7 +192,7 @@ class _BiometricTile extends ConsumerWidget {
     if (value) {
       final available = await BiometricService.instance.isAvailable();
       if (!available) {
-        if (context.mounted) toast('此设备未配置生物识别或屏幕锁');
+        if (context.mounted) toast(l10n.biometricUnavailableToast);
         return;
       }
     }
@@ -107,16 +200,18 @@ class _BiometricTile extends ConsumerWidget {
     final bool ok;
     try {
       ok = await BiometricService.instance.authenticate(
-        value ? '验证以开启 ZRemote 生物识别锁' : '验证以关闭 ZRemote 生物识别锁',
+        value ? l10n.biometricEnableReason : l10n.biometricDisableReason,
       );
     } on BiometricUnavailableException {
       if (!value) await ref.read(biometricProvider.notifier).set(false);
       if (context.mounted) {
-        toast(value ? '此设备无可用屏幕锁，无法开启' : '设备已无可用屏幕锁，已强制关闭防锁死');
+        toast(
+          value ? l10n.biometricNoLockToast : l10n.biometricForceDisabledToast,
+        );
       }
       return;
     } catch (e) {
-      if (context.mounted) toast('验证未完成，开关保持原状（$e）');
+      if (context.mounted) toast(l10n.authIncompleteToast('$e'));
       return;
     }
 
@@ -132,6 +227,7 @@ class _KeepAliveTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final enabled = ref.watch(keepAliveEnabledProvider);
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: SwitchListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
@@ -144,12 +240,12 @@ class _KeepAliveTile extends ConsumerWidget {
           ),
           child: const Icon(Icons.shield_outlined, size: 22, color: ZT.accent),
         ),
-        title: const Text(
-          '后台保活',
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        title: Text(
+          l10n.keepAliveTitle,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
         subtitle: Text(
-          enabled ? '切后台仍实时接收会话事件' : '退后台可能被系统冻结',
+          enabled ? l10n.keepAliveOn : l10n.keepAliveOff,
           style: const TextStyle(fontSize: 12),
         ),
         activeThumbColor: ZT.accent,
@@ -213,9 +309,7 @@ class _BatteryTileState extends ConsumerState<_BatteryTile> {
           height: 40,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            color: _blocked
-                ? ZT.danger.withValues(alpha: 0.10)
-                : ZT.surfaceHi,
+            color: _blocked ? ZT.danger.withValues(alpha: 0.10) : ZT.surfaceHi,
           ),
           child: Icon(
             _blocked ? Icons.shield_moon_outlined : Icons.battery_saver,
@@ -223,19 +317,16 @@ class _BatteryTileState extends ConsumerState<_BatteryTile> {
             color: _blocked ? ZT.danger : ZT.accent,
           ),
         ),
-        title: const Text(
-          '电池优化白名单',
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        title: Text(
+          AppLocalizations.of(context)!.batteryWhitelistTitle,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
-        subtitle: Text(
-          switch ((_blocked, _ignored)) {
-            (true, _) => '守护被系统限制：点此去省电策略设「无限制」',
-            (_, null) => '检测中…',
-            (_, false) => '未豁免：点击申请（部分厂商还需允许自启动）',
-            (_, true) => '已豁免——后台不受 Doze 限流',
-          },
-          style: const TextStyle(fontSize: 12),
-        ),
+        subtitle: Text(switch ((_blocked, _ignored)) {
+          (true, _) => AppLocalizations.of(context)!.batteryBlocked,
+          (_, null) => AppLocalizations.of(context)!.batteryChecking,
+          (_, false) => AppLocalizations.of(context)!.batteryNotExempt,
+          (_, true) => AppLocalizations.of(context)!.batteryExempt,
+        }, style: const TextStyle(fontSize: 12)),
         trailing: switch ((_blocked, _ignored)) {
           (_, null) => const SizedBox(
             width: 16,
@@ -247,7 +338,11 @@ class _BatteryTileState extends ConsumerState<_BatteryTile> {
             size: 20,
             color: ZT.danger,
           ),
-          (_, true) => const Icon(Icons.check_circle, size: 20, color: ZT.accent),
+          (_, true) => const Icon(
+            Icons.check_circle,
+            size: 20,
+            color: ZT.accent,
+          ),
           (_, false) => const Icon(Icons.chevron_right, color: ZT.textLo),
         },
         onTap: _blocked || _ignored != true ? _request : null,
@@ -263,6 +358,7 @@ class _NotificationCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final prefs = ref.watch(notificationPrefsProvider);
     final notifier = ref.read(notificationPrefsProvider.notifier);
+    final l10n = AppLocalizations.of(context)!;
 
     Widget tile(
       String title,
@@ -285,32 +381,32 @@ class _NotificationCard extends ConsumerWidget {
       child: Column(
         children: [
           tile(
-            '审批请求',
-            '需要你的批准或输入（推荐开启）',
+            l10n.notifApprovalTitle,
+            l10n.notifApprovalSubtitle,
             prefs.approval,
             (v) => notifier.set(prefs.copyWith(approval: v)),
           ),
           const Divider(indent: 16, endIndent: 16, height: 1),
           tile(
-            '任务完成',
-            '会话跑完时提醒',
+            l10n.notifCompleteTitle,
+            l10n.notifCompleteSubtitle,
             prefs.complete,
             (v) => notifier.set(prefs.copyWith(complete: v)),
           ),
           const Divider(indent: 16, endIndent: 16, height: 1),
           tile(
-            '任务失败',
-            '会话出错时提醒',
+            l10n.notifFailTitle,
+            l10n.notifFailSubtitle,
             prefs.fail,
             (v) => notifier.set(prefs.copyWith(fail: v)),
           ),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 6, 16, 14),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 14),
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                '提醒会标注来源设备与会话；正在查看的会话不提醒',
-                style: TextStyle(fontSize: 11, color: ZT.textLo),
+                l10n.notifFootnote,
+                style: const TextStyle(fontSize: 11, color: ZT.textLo),
               ),
             ),
           ),

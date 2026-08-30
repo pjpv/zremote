@@ -91,6 +91,18 @@ class DeviceStore {
     await prefs.setBool(_keepAliveKey, value);
   }
 
+  static const _localeKey = 'zremote.locale';
+
+  Future<String> localeSetting() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_localeKey) ?? 'system';
+  }
+
+  Future<void> setLocaleSetting(String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_localeKey, value);
+  }
+
   static const _notifApprovalKey = 'zremote.notify.approval';
   static const _notifCompleteKey = 'zremote.notify.complete';
   static const _notifFailKey = 'zremote.notify.fail';

@@ -47,11 +47,11 @@ void main() {
       expect(LinkBuilder.parse('http://'), isNull);
     });
 
-    test('宽松：多余参数保留，name 缺省回退', () {
+    test('宽松：多余参数保留，name 缺省存空（默认名在渲染层本地化）', () {
       const url = 'https://zcode.z.ai/remote/v5?sid=s1&hash=h1&future=xyz';
       final d = LinkBuilder.parse(url)!;
       expect(d.params['future'], 'xyz');
-      expect(d.label, '未命名设备');
+      expect(d.label, '');
     });
 
     test('带端口与非标准路径可用', () {

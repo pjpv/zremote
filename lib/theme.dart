@@ -25,12 +25,6 @@ abstract final class ZT {
     SessionStatus.loading || null => accent,
   };
 
-  static String statusLabel(SessionStatus? status) => switch (status) {
-    SessionStatus.live => '会话保活中',
-    SessionStatus.error => '连接异常',
-    SessionStatus.loading || null => '连接中',
-  };
-
   static ThemeData theme() {
     final scheme =
         ColorScheme.fromSeed(

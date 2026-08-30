@@ -1,6 +1,8 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/device.dart';
+import '../models/device_label.dart';
 import 'event_observer.dart';
 
 class NotificationSpec {
@@ -29,52 +31,58 @@ class NotificationSpec {
           (event.taskId?.hashCode ?? 0)) &
       0x7FFFFFFF;
 
-  static NotificationSpec? from(RemoteDevice device, ObservedEvent event) {
+  static NotificationSpec? from(
+    RemoteDevice device,
+    ObservedEvent event, [
+    AppLocalizations? l10n,
+  ]) {
+    final l = l10n ?? l10nZh;
     final session = event.sessionTitle?.trim().isNotEmpty == true
         ? event.sessionTitle!.trim()
-        : '会话';
+        : l.notifSessionFallback;
     final what = event.summary?.trim().isNotEmpty == true
         ? event.summary!.trim()
         : null;
+    final label = device.displayName(l);
     switch (event.type) {
       case 'permission_request':
         return NotificationSpec(
           channelId: 'zr_perm',
-          channelName: '审批请求',
+          channelName: l.notifChannelApproval,
           importance: Importance.high,
           priority: Priority.high,
-          title: '[${device.label}] $session 请求批准',
-          body: what ?? 'Agent 有一个操作在等你批准',
+          title: l.notifPermTitle(label, session),
+          body: what ?? l.notifPermBody,
           payload: device.id,
         );
       case 'elicitation_request':
         return NotificationSpec(
           channelId: 'zr_perm',
-          channelName: '审批请求',
+          channelName: l.notifChannelApproval,
           importance: Importance.high,
           priority: Priority.high,
-          title: '[${device.label}] $session 需要你的输入',
-          body: what ?? 'Agent 在等你的回答',
+          title: l.notifElicitTitle(label, session),
+          body: what ?? l.notifElicitBody,
           payload: device.id,
         );
       case 'error':
         return NotificationSpec(
           channelId: 'zr_fail',
-          channelName: '任务失败',
+          channelName: l.notifChannelFail,
           importance: Importance.high,
           priority: Priority.high,
-          title: '[${device.label}] $session 出错',
-          body: what ?? '任务失败，回来看看',
+          title: l.notifErrorTitle(label, session),
+          body: what ?? l.notifErrorBody,
           payload: device.id,
         );
       case 'completed':
         return NotificationSpec(
           channelId: 'zr_done',
-          channelName: '任务完成',
+          channelName: l.notifChannelDone,
           importance: Importance.defaultImportance,
           priority: Priority.defaultPriority,
-          title: '[${device.label}] $session 已完成',
-          body: what ?? '任务跑完了，回来看看结果',
+          title: l.notifDoneTitle(label, session),
+          body: what ?? l.notifDoneBody,
           payload: device.id,
         );
       default:
@@ -149,8 +157,12 @@ class NotifierService {
     }
   }
 
-  Future<void> notifyFrom(RemoteDevice device, ObservedEvent event) async {
-    final spec = NotificationSpec.from(device, event);
+  Future<void> notifyFrom(
+    RemoteDevice device,
+    ObservedEvent event, {
+    AppLocalizations? l10n,
+  }) async {
+    final spec = NotificationSpec.from(device, event, l10n);
     if (spec == null) return;
     try {
       if (!_permissionAsked) await ensurePermission();

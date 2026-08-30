@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/device.dart';
 import '../services/event_observer.dart';
 import '../services/link_builder.dart';
@@ -14,6 +15,7 @@ import '../state/notification_prefs.dart';
 import '../state/session_pool.dart';
 import '../state/session_status.dart';
 import '../theme.dart';
+import '../models/device_label.dart';
 import 'unread_badge.dart';
 
 class SessionView extends ConsumerStatefulWidget {
@@ -79,7 +81,11 @@ class _SessionViewState extends ConsumerState<SessionView> {
       );
       if (!notify) continue;
       _feedNotifier?.ingest(widget.device.id, event);
-      NotifierService.instance.notifyFrom(widget.device, event);
+      NotifierService.instance.notifyFrom(
+        widget.device,
+        event,
+        l10n: AppLocalizations.of(context),
+      );
     }
   }
 
@@ -111,6 +117,7 @@ class _SessionViewState extends ConsumerState<SessionView> {
 
   Future<void> _showSwitcher() async {
     final devices = ref.read(deviceListProvider);
+    final l10n = AppLocalizations.of(context)!;
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: ZT.surface,
@@ -137,7 +144,7 @@ class _SessionViewState extends ConsumerState<SessionView> {
                 ListTile(
                   leading: _Led(status: ref.read(sessionStatusProvider)[d.id]),
                   title: Text(
-                    d.label,
+                    d.displayName(l10n),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -160,7 +167,7 @@ class _SessionViewState extends ConsumerState<SessionView> {
               const Divider(indent: 16, endIndent: 16),
               ListTile(
                 leading: const Icon(Icons.tune, color: ZT.textLo),
-                title: const Text('设备管理'),
+                title: Text(l10n.manageTitle),
                 onTap: () {
                   Navigator.pop(sheetContext);
                   _goHome();
@@ -184,16 +191,17 @@ class _SessionViewState extends ConsumerState<SessionView> {
   @override
   Widget build(BuildContext context) {
     final status = ref.watch(sessionStatusProvider)[widget.device.id];
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.tune),
-          tooltip: '设备管理',
+          tooltip: l10n.manageTitle,
           onPressed: _goHome,
         ),
         title: Tooltip(
-          message: '切换设备',
+          message: l10n.switchDevice,
           child: InkWell(
             borderRadius: BorderRadius.circular(8),
             onTap: _showSwitcher,
@@ -206,7 +214,7 @@ class _SessionViewState extends ConsumerState<SessionView> {
                   const SizedBox(width: 10),
                   Flexible(
                     child: Text(
-                      widget.device.label,
+                      widget.device.displayName(l10n),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -229,7 +237,7 @@ class _SessionViewState extends ConsumerState<SessionView> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: '刷新（重铸链接时间戳）',
+            tooltip: l10n.refreshTooltip,
             onPressed: _manualReload,
           ),
         ],
@@ -249,29 +257,32 @@ class _SessionViewState extends ConsumerState<SessionView> {
                     color: ZT.danger,
                   ),
                   const SizedBox(width: 10),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '连接异常',
-                          style: TextStyle(
+                          l10n.statusError,
+                          style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
                             color: ZT.danger,
                           ),
                         ),
-                        SizedBox(height: 2),
+                        const SizedBox(height: 2),
                         Text(
-                          '自动重载未恢复；若持续失败，电脑端身份可能已轮换，请重新扫码导入',
-                          style: TextStyle(fontSize: 12, color: ZT.textLo),
+                          l10n.errorBannerDetail,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: ZT.textLo,
+                          ),
                         ),
                       ],
                     ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.refresh, color: ZT.textLo, size: 20),
-                    tooltip: '重试',
+                    tooltip: l10n.retry,
                     onPressed: _manualReload,
                   ),
                 ],
