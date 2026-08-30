@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'services/biometric.dart';
+import 'services/notifier.dart';
 import 'state/session_pool.dart';
 import 'theme.dart';
+import 'state/app_lifecycle.dart';
 import 'ui/app_shell.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await NotifierService.instance.init();
   runApp(const ProviderScope(child: ZRemoteApp()));
 }
 
@@ -19,7 +23,7 @@ class ZRemoteApp extends ConsumerWidget {
       title: 'ZRemote',
       debugShowCheckedModeBanner: false,
       theme: ZT.theme(),
-      home: const AppShell(),
+      home: const LifecycleWatcher(child: AppShell()),
       builder: (context, child) => BiometricGate(child: child!),
     );
   }
@@ -140,50 +144,61 @@ class _BiometricGateState extends ConsumerState<BiometricGate>
               blocking: true,
               child: Scaffold(
                 backgroundColor: ZT.bg,
-                body: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 88,
-                        height: 88,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: ZT.surface,
-                          border: Border.all(color: ZT.hairline),
+                body: SafeArea(
+                  child: LayoutBuilder(
+                    builder: (context, viewport) => SingleChildScrollView(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: viewport.maxHeight,
                         ),
-                        child: const Icon(
-                          Icons.fingerprint,
-                          size: 42,
-                          color: ZT.accent,
+                        child: Align(
+                          alignment: const Alignment(0, -0.55),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Image.asset(
+                                    'assets/brand/mark.png',
+                                    width: 72,
+                                    height: 72,
+                                  ),
+                                  const SizedBox(height: 20),
+                                  const Text(
+                                    'ZREMOTE',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 6,
+                                      color: ZT.textLo,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    '已锁定',
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w700,
+                                      color: ZT.textHi,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 28),
+                                  FilledButton.icon(
+                                    onPressed: _unlock,
+                                    icon: const Icon(Icons.lock_open, size: 18),
+                                    label: const Text('解锁'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 28),
-                      const Text(
-                        'ZREMOTE',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 6,
-                          color: ZT.textLo,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        '已锁定',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
-                          color: ZT.textHi,
-                        ),
-                      ),
-                      const SizedBox(height: 28),
-                      FilledButton.icon(
-                        onPressed: _unlock,
-                        icon: const Icon(Icons.lock_open, size: 18),
-                        label: const Text('解锁'),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),

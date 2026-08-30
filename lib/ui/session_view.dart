@@ -1,12 +1,20 @@
+import 'dart:collection';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/device.dart';
+import '../services/event_observer.dart';
 import '../services/link_builder.dart';
+import '../services/notifier.dart';
+import '../state/app_lifecycle.dart';
+import '../state/event_feed.dart';
+import '../state/notification_prefs.dart';
 import '../state/session_pool.dart';
 import '../state/session_status.dart';
 import '../theme.dart';
+import 'unread_badge.dart';
 
 class SessionView extends ConsumerStatefulWidget {
   final RemoteDevice device;
@@ -24,11 +32,17 @@ class _SessionViewState extends ConsumerState<SessionView> {
   DateTime _lastAutoReload = DateTime.fromMillisecondsSinceEpoch(0);
 
   SessionStatusNotifier? _statusNotifier;
+  EventFeedNotifier? _feedNotifier;
+
+  final StateDiffer _stateDiffer = StateDiffer();
+
+  String? _activeSessionId;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _statusNotifier ??= ref.read(sessionStatusProvider.notifier);
+    _feedNotifier ??= ref.read(eventFeedProvider.notifier);
   }
 
   void _report(SessionStatus status) =>
@@ -37,6 +51,37 @@ class _SessionViewState extends ConsumerState<SessionView> {
   void _goHome() => ref
       .read(activeTabProvider.notifier)
       .set(ref.read(deviceListProvider).length);
+
+  void _onBridgeMessage(String body) {
+    if (!mounted) return;
+    final activeSession = ActiveSessionExtractor.parse(body);
+    if (activeSession != null) _activeSessionId = activeSession;
+
+    final events = <ObservedEvent>[
+      ...EventParser.parseMessage(body),
+      ..._stateDiffer.apply(SessionStateExtractor.parse(body)),
+    ];
+    if (events.isEmpty) return;
+    final devices = ref.read(deviceListProvider);
+    final active = ref.read(activeTabProvider);
+    final visibleId = active < devices.length ? devices[active].id : null;
+    final appForeground =
+        ref.read(appLifecycleProvider) == AppLifecycleState.resumed;
+    final prefs = ref.read(notificationPrefsProvider);
+    for (final event in events) {
+      if (!prefs.enabled(event.type)) continue;
+      final notify = NotificationGate.shouldNotify(
+        appForeground: appForeground,
+        visibleDeviceId: visibleId,
+        eventDeviceId: widget.device.id,
+        activeSessionId: _activeSessionId,
+        eventSessionId: event.taskId,
+      );
+      if (!notify) continue;
+      _feedNotifier?.ingest(widget.device.id, event);
+      NotifierService.instance.notifyFrom(widget.device, event);
+    }
+  }
 
   URLRequest _freshRequest() =>
       URLRequest(url: WebUri(LinkBuilder.buildUrl(widget.device).toString()));
@@ -96,9 +141,16 @@ class _SessionViewState extends ConsumerState<SessionView> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  trailing: d.id == widget.device.id
-                      ? const Icon(Icons.check, color: ZT.accent, size: 20)
-                      : null,
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      UnreadBadge(feed: ref.read(eventFeedProvider)[d.id]),
+                      if (d.id == widget.device.id) ...[
+                        const SizedBox(width: 8),
+                        const Icon(Icons.check, color: ZT.accent, size: 20),
+                      ],
+                    ],
+                  ),
                   onTap: () {
                     Navigator.pop(sheetContext);
                     final index = ref.read(deviceListProvider).indexOf(d);
@@ -125,6 +177,7 @@ class _SessionViewState extends ConsumerState<SessionView> {
   @override
   void dispose() {
     _statusNotifier?.forget(widget.device.id);
+    _feedNotifier?.forget(widget.device.id);
     super.dispose();
   }
 
@@ -135,8 +188,8 @@ class _SessionViewState extends ConsumerState<SessionView> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          tooltip: '设备列表',
+          icon: const Icon(Icons.tune),
+          tooltip: '设备管理',
           onPressed: _goHome,
         ),
         title: Tooltip(
@@ -227,13 +280,29 @@ class _SessionViewState extends ConsumerState<SessionView> {
           Expanded(
             child: InAppWebView(
               initialUrlRequest: _freshRequest(),
+              initialUserScripts: UnmodifiableListView([
+                UserScript(
+                  source: EventObserver.hookScript,
+                  injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
+                ),
+              ]),
               initialSettings: InAppWebViewSettings(
                 javaScriptEnabled: true,
                 domStorageEnabled: true,
                 supportZoom: false,
-                useHybridComposition: true,
+                useHybridComposition: false,
               ),
-              onWebViewCreated: (controller) => _controller = controller,
+              onWebViewCreated: (controller) {
+                _controller = controller;
+                controller.addJavaScriptHandler(
+                  handlerName: 'zrEvents',
+                  callback: (args) {
+                    final body = args.isNotEmpty ? args.first : null;
+                    if (body is String) _onBridgeMessage(body);
+                    return null;
+                  },
+                );
+              },
               onLoadStart: (_, _) {
                 if (mounted) {
                   setState(() {

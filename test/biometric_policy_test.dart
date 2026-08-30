@@ -1,5 +1,5 @@
 import 'package:local_auth/local_auth.dart';
-// ignore: depend_on_referenced_packages — AuthMessages 仅在平台接口包中定义
+// ignore: depend_on_referenced_packages
 import 'package:local_auth_platform_interface/local_auth_platform_interface.dart'
     show AuthMessages;
 import 'package:flutter_test/flutter_test.dart';

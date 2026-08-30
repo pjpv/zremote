@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/device.dart';
+import '../models/notification_prefs.dart';
 
 class DeviceStore {
   DeviceStore._();
@@ -76,5 +77,37 @@ class DeviceStore {
   Future<void> setBiometricEnabled(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_biometricKey, value);
+  }
+
+  static const _keepAliveKey = 'zremote.keepalive';
+
+  Future<bool> keepAliveEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keepAliveKey) ?? true;
+  }
+
+  Future<void> setKeepAliveEnabled(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keepAliveKey, value);
+  }
+
+  static const _notifApprovalKey = 'zremote.notify.approval';
+  static const _notifCompleteKey = 'zremote.notify.complete';
+  static const _notifFailKey = 'zremote.notify.fail';
+
+  Future<NotificationPrefs> notificationPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    return NotificationPrefs(
+      approval: prefs.getBool(_notifApprovalKey) ?? true,
+      complete: prefs.getBool(_notifCompleteKey) ?? false,
+      fail: prefs.getBool(_notifFailKey) ?? false,
+    );
+  }
+
+  Future<void> setNotificationPrefs(NotificationPrefs value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_notifApprovalKey, value.approval);
+    await prefs.setBool(_notifCompleteKey, value.complete);
+    await prefs.setBool(_notifFailKey, value.fail);
   }
 }

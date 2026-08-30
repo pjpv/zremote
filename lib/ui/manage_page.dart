@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
 import '../models/device.dart';
-import '../services/biometric.dart';
+import '../services/keepalive.dart';
 import '../services/link_builder.dart';
+import '../state/app_lifecycle.dart';
 import '../state/session_pool.dart';
+import '../state/keepalive.dart';
 import '../state/session_status.dart';
+import '../state/event_feed.dart';
 import '../theme.dart';
+import 'section_label.dart';
+import 'settings_page.dart';
+import 'unread_badge.dart';
 
 class ManagePage extends ConsumerWidget {
   const ManagePage({super.key});
@@ -57,13 +62,11 @@ class ManagePage extends ConsumerWidget {
             if (devices.isEmpty)
               _EmptyHint(onScan: () => _openScanner(context, ref))
             else ...[
-              _SectionLabel('设备 · ${devices.length}'),
+              SectionLabel('设备 · ${devices.length}'),
               ...devices.map((d) => _DeviceCard(device: d)),
             ],
             const SizedBox(height: 12),
-            const _SectionLabel('安全'),
-            const _BiometricTile(),
-            const _VersionFooter(),
+            const _SettingsEntry(),
           ],
         ),
       ),
@@ -167,28 +170,6 @@ class ManagePage extends ConsumerWidget {
   }
 }
 
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 10, 4, 8),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1,
-          color: ZT.textLo,
-        ),
-      ),
-    );
-  }
-}
-
 class _EmptyHint extends StatelessWidget {
   const _EmptyHint({required this.onScan});
 
@@ -251,6 +232,7 @@ class _DeviceCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final status = ref.watch(sessionStatusProvider)[device.id];
+    final feed = ref.watch(eventFeedProvider)[device.id];
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -299,6 +281,7 @@ class _DeviceCard extends ConsumerWidget {
                   ],
                 ),
               ),
+              UnreadBadge(feed: feed),
               Tooltip(
                 message: ZT.statusLabel(status),
                 child: AnimatedContainer(
@@ -395,97 +378,79 @@ class _DeviceCard extends ConsumerWidget {
   }
 }
 
-class _BiometricTile extends ConsumerWidget {
-  const _BiometricTile();
+class _SettingsEntry extends ConsumerStatefulWidget {
+  const _SettingsEntry();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final enabled = ref.watch(biometricProvider);
+  ConsumerState<_SettingsEntry> createState() => _SettingsEntryState();
+}
+
+class _SettingsEntryState extends ConsumerState<_SettingsEntry> {
+  bool _risk = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _refresh();
+  }
+
+  Future<void> _refresh() async {
+    final risk = await _computeRisk();
+    if (mounted) setState(() => _risk = risk);
+  }
+
+  Future<bool> _computeRisk() async {
+    if (ref.read(deviceListProvider).isEmpty) return false;
+    if (!ref.read(keepAliveEnabledProvider)) return true;
+    final service = KeepAliveService.instance;
+    final results = await Future.wait([
+      service.isBatteryIgnored,
+      service.isBlocked,
+    ]);
+    return !results[0] || results[1];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen(keepAliveEnabledProvider, (_, _) => _refresh());
+    ref.listen(appLifecycleProvider, (prev, next) {
+      if (next == AppLifecycleState.resumed) _refresh();
+    });
     return Card(
-      child: SwitchListTile(
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        secondary: Container(
+        leading: Container(
           width: 40,
           height: 40,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             color: ZT.accent.withValues(alpha: 0.10),
           ),
-          child: const Icon(Icons.fingerprint, color: ZT.accent),
+          child: const Icon(Icons.settings_outlined, size: 20, color: ZT.accent),
         ),
         title: const Text(
-          '生物识别锁',
+          '设置',
           style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
-        subtitle: const Text('启动与离开较久后回到前台需验证', style: TextStyle(fontSize: 12)),
-        activeThumbColor: ZT.accent,
-        value: enabled,
-        onChanged: (value) => _toggle(context, ref, value),
+        subtitle: const Text(
+          '安全 · 后台 · 通知提醒',
+          style: TextStyle(fontSize: 12),
+        ),
+        trailing: _risk
+            ? Tooltip(
+                message: '通知链路受限，点开设置查看',
+                child: const Icon(
+                  Icons.warning_amber_rounded,
+                  size: 20,
+                  color: ZT.danger,
+                ),
+              )
+            : const Icon(Icons.chevron_right, color: ZT.textLo),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const SettingsPage()),
+        ),
       ),
-    );
-  }
-
-  Future<void> _toggle(BuildContext context, WidgetRef ref, bool value) async {
-    void toast(String msg) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-    }
-
-    if (value) {
-      final available = await BiometricService.instance.isAvailable();
-      if (!available) {
-        if (context.mounted) toast('此设备未配置生物识别或屏幕锁');
-        return;
-      }
-    }
-
-    final bool ok;
-    try {
-      ok = await BiometricService.instance.authenticate(
-        value ? '验证以开启 ZRemote 生物识别锁' : '验证以关闭 ZRemote 生物识别锁',
-      );
-    } on BiometricUnavailableException {
-      if (!value) await ref.read(biometricProvider.notifier).set(false);
-      if (context.mounted) {
-        toast(value ? '此设备无可用屏幕锁，无法开启' : '设备已无可用屏幕锁，已强制关闭防锁死');
-      }
-      return;
-    } catch (e) {
-      if (context.mounted) toast('验证未完成，开关保持原状（$e）');
-      return;
-    }
-
-    if (ok) {
-      await ref.read(biometricProvider.notifier).set(value);
-    }
-  }
-}
-
-class _VersionFooter extends StatelessWidget {
-  const _VersionFooter();
-
-  static final _info = PackageInfo.fromPlatform();
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<PackageInfo>(
-      future: _info,
-      builder: (context, snapshot) {
-        final info = snapshot.data;
-        if (info == null) return const SizedBox(height: 40);
-        return Padding(
-          padding: const EdgeInsets.only(top: 30),
-          child: Center(
-            child: Text(
-              'ZRemote v${info.version}',
-              style: const TextStyle(
-                fontSize: 11,
-                letterSpacing: 1,
-                color: ZT.textLo,
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 }
