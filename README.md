@@ -18,16 +18,29 @@ ZCode 桌面端远程控制的手机伴侣 App。电脑端出示二维码，手�
 - **设置页** —— 安全、后台与通知偏好集中管理，设备列表回归纯操作
 - **深色控制台 UI** —— 低光环境友好的深色界面
 
+## 下载与安装
+
+到 [Releases](https://github.com/pjpv/zremote/releases) 页获取最新版：
+
+- **Android** —— `app-release.apk`，下载后直接安装
+- **iOS** —— `zremote-ios-unsigned.ipa`，**未签名包，无法直接安装**：请使用 [AltStore](https://altstore.io)、[Sideloadly](https://sideloadly.io) 或 TrollStore 等工具，用自己的 Apple ID 签名后侧载（免费账号签名有效期 7 天，到期需重新签名）
+
 ## 构建
 
 环境要求：
 
 - Flutter ≥ 3.38（Dart ≥ 3.10）
-- JDK 17
+- JDK 17（Android 构建）
+- Xcode（iOS 构建，需 macOS）
 
 ```bash
 flutter pub get
+
+# Android
 flutter build apk --release
+
+# iOS（未签名）
+flutter build ios --release --no-codesign
 ```
 
 ## 使用
