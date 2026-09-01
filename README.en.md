@@ -13,7 +13,8 @@ A mobile companion app for ZCode desktop remote control. The desktop shows a QR 
 
 - **Import via QR / paste** — scan the remote-control QR code shown by the desktop, or paste the control link, to add a device
 - **Parallel multi-device sessions** — every device stays online at once; switching never reconnects
-- **Task event notifications** — approval requests, task completions and failures arrive as system notifications; each type has its own toggle (approval only by default), with unread badges so nothing slips by in the background or on the lock screen
+- **Session overview panel** — cross-project task cards at a glance: project · relative time · status capsule, grouped by today / yesterday / earlier; a live dot tracks the session currently being viewed, tap to jump straight to it
+- **Task event notifications** — approval requests, task completions and failures arrive as system notifications; each type has its own toggle (approval only by default), with unread badges so nothing slips by in the background or on the lock screen; notifications retract automatically once the desktop side resolves the pending item
 - **Background keep-alive** — a foreground guard service keeps sessions alive in background and with the screen off; battery-optimization whitelist guidance included, auto-recovers on return to foreground
 - **Session health indicator** — per-device connection state at a glance (loading / connected / error)
 - **One-tap refresh & auto recovery** — reload a broken session manually; repeated failures fall back to automatic reload
