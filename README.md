@@ -7,6 +7,7 @@ ZCode 桌面端远程控制的手机伴侣 App。电脑端出示二维码，手�
 <p align="center">
   <img src="docs/screenshot.jpg" width="270" alt="ZRemote App 界面" />
   <img src="docs/screenshot-2.jpg" width="270" alt="ZRemote App 界面" />
+  <img src="docs/session-panel-zh.png" width="270" alt="会话总览面板" />
 </p>
 
 ## 功能

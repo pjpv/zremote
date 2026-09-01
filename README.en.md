@@ -7,6 +7,7 @@ A mobile companion app for ZCode desktop remote control. The desktop shows a QR 
 <p align="center">
   <img src="docs/screenshot.jpg" width="270" alt="ZRemote App interface" />
   <img src="docs/screenshot-2.jpg" width="270" alt="ZRemote App interface" />
+  <img src="docs/session-panel-en.png" width="270" alt="Session overview panel" />
 </p>
 
 ## Features
