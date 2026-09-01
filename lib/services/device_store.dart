@@ -103,6 +103,18 @@ class DeviceStore {
     await prefs.setString(_localeKey, value);
   }
 
+  static const _lastDeviceKey = 'zremote.lastDevice';
+
+  Future<String?> lastDeviceId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_lastDeviceKey);
+  }
+
+  Future<void> setLastDeviceId(String id) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_lastDeviceKey, id);
+  }
+
   static const _notifApprovalKey = 'zremote.notify.approval';
   static const _notifCompleteKey = 'zremote.notify.complete';
   static const _notifFailKey = 'zremote.notify.fail';

@@ -1,17 +1,47 @@
 import 'dart:convert';
 
+const int kMaxListenBytes = 4194304;
+
 abstract final class EventObserver {
   static const String hookScript = '''
 (function() {
   if (window.__zrHooked) return;
   window.__zrHooked = true;
-  var send = function(body) {
+  var q = [];
+  var qBytes = 0;
+  var qMaxEntries = 2048;
+  var post = function(name, body) {
     try {
-      if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
-        window.flutter_inappwebview.callHandler('zrEvents', body);
+      var h = window.flutter_inappwebview;
+      if (h && h.callHandler) {
+        h.callHandler(name, body);
+        return;
+      }
+      if (q.length >= qMaxEntries) {
+        qBytes -= q.shift().b.length;
+      }
+      q.push({ n: name, b: body });
+      qBytes += body.length;
+      while (qBytes > $kMaxListenBytes && q.length > 1) {
+        qBytes -= q.shift().b.length;
       }
     } catch (e) {}
   };
+  var flush = function() {
+    var h = window.flutter_inappwebview;
+    if (!h || !h.callHandler) return false;
+    while (q.length > 0) {
+      var m = q.shift();
+      qBytes -= m.b.length;
+      try { h.callHandler(m.n, m.b); } catch (e) {}
+    }
+    return true;
+  };
+  window.addEventListener('flutterInAppWebViewPlatformReady', function() { flush(); }, false);
+  var flushTimer = setInterval(function() {
+    if (flush()) clearInterval(flushTimer);
+  }, 120);
+  var send = function(body) { post('zrEvents', body); };
   var asm = {};
   var asmOrder = [];
   var b64Bytes = function(b64) {
@@ -23,7 +53,7 @@ abstract final class EventObserver {
   var tryDecodePayload = function(p) {
     try {
       if (!p || typeof p.dataBase64 !== 'string' || p.dataBase64.length === 0) return;
-      var bytesCapOk = !p.messageBytes || p.messageBytes < 262144;
+      var bytesCapOk = !p.messageBytes || p.messageBytes < $kMaxListenBytes;
       if (!bytesCapOk) return;
       var bytes;
       if (p.kind === 'fragment' && p.fragmentCount > 1) {
@@ -43,7 +73,7 @@ abstract final class EventObserver {
         if (idx >= 0) asmOrder.splice(idx, 1);
         var size = 0;
         for (var q = 0; q < slot.total; q++) size += (slot.parts[q] || {length:0}).length;
-        if (size > 262144) return;
+        if (size > $kMaxListenBytes) return;
         bytes = new Uint8Array(size);
         var off = 0;
         for (var q2 = 0; q2 < slot.total; q2++) {
@@ -76,6 +106,18 @@ abstract final class EventObserver {
   var origFetch = window.fetch;
   if (origFetch) {
     window.fetch = function() {
+      try {
+        var u = arguments[0], init = arguments[1];
+        var url = typeof u === 'string' ? u : ((u && u.url) || '');
+        var method = (init && init.method) || '';
+        if (url.indexOf('/mobile-view-state') >= 0 &&
+            String(method).toUpperCase() === 'POST') {
+          var b = init && init.body;
+          if (typeof b === 'string' && b.length > 0) {
+            post('zrViewState', b);
+          }
+        }
+      } catch (e) {}
       var p = origFetch.apply(this, arguments);
       return p.then(function(res) {
         try {
@@ -87,9 +129,9 @@ abstract final class EventObserver {
           var cl = (res.headers && res.headers.get)
               ? res.headers.get('content-length')
               : null;
-          if (cl && +cl > 262144) return res;
+          if (cl && +cl > $kMaxListenBytes) return res;
           res.clone().text().then(function(t) {
-            if (t && t.length > 0 && t.length < 262144) send(t);
+            if (t && t.length > 0 && t.length < $kMaxListenBytes) send(t);
           }).catch(function() {});
         } catch (e) {}
         return res;
@@ -112,21 +154,31 @@ abstract final class EventObserver {
   }
   var OrigWS = window.WebSocket;
   if (OrigWS) {
+    var wsSend = function(event) {
+      post('zrWs', event);
+    };
     var WSWrapped = function(url, protocols) {
       var ws = (protocols === undefined)
           ? new OrigWS(url)
           : new OrigWS(url, protocols);
       try {
+        var urlStr = (url && url.href) ? url.href : String(url);
+        ws.addEventListener('open', function() {
+          wsSend(JSON.stringify({s: 'open', u: urlStr}));
+        });
+        ws.addEventListener('close', function(ev) {
+          wsSend(JSON.stringify({s: 'closed', u: urlStr, c: ev && ev.code, r: (ev && ev.reason) || ''}));
+        });
         ws.addEventListener('message', function(ev) {
           try {
             var d = ev.data;
             if (typeof d === 'string') {
               sendWithDecode(d);
             } else if (d && typeof d.size === 'number') {
-              if (d.size > 0 && d.size < 262144) {
+              if (d.size > 0 && d.size < $kMaxListenBytes) {
                 d.text().then(function(t) { sendWithDecode(t); }).catch(function() {});
               }
-            } else if (d && d.byteLength > 0 && d.byteLength < 262144) {
+            } else if (d && d.byteLength > 0 && d.byteLength < $kMaxListenBytes) {
               try { sendWithDecode(new TextDecoder('utf-8', {fatal: false}).decode(d)); } catch (e2) {}
             }
           } catch (e) {}
@@ -193,6 +245,10 @@ abstract final class EventParser {
     } catch (_) {
       return const [];
     }
+    return parseRoot(root);
+  }
+
+  static List<ObservedEvent> parseRoot(dynamic root) {
     final events = <ObservedEvent>[];
     _walk(root, 0, events);
     return events;
@@ -257,6 +313,10 @@ class SessionState {
     this.interactionKind,
     this.toolName,
     this.description,
+    this.lastActivityAt,
+    this.createdAt,
+    this.workspace,
+    this.pinned = false,
   });
 
   final String sessionId;
@@ -270,12 +330,47 @@ class SessionState {
 
   final String? description;
 
-  @override
-  bool operator ==(Object other) =>
-      other is SessionState && other.sessionId == sessionId;
+  final int? lastActivityAt;
+
+  final int? createdAt;
+
+  final String? workspace;
+
+  final bool pinned;
 
   @override
-  int get hashCode => sessionId.hashCode;
+  bool operator ==(Object other) =>
+      other is SessionState &&
+      other.sessionId == sessionId &&
+      other.title == title &&
+      other.phase == phase &&
+      other.sessionEnded == sessionEnded &&
+      other.permissionCount == permissionCount &&
+      other.userInputCount == userInputCount &&
+      other.interactionKind == interactionKind &&
+      other.toolName == toolName &&
+      other.description == description &&
+      other.lastActivityAt == lastActivityAt &&
+      other.createdAt == createdAt &&
+      other.workspace == workspace &&
+      other.pinned == pinned;
+
+  @override
+  int get hashCode => Object.hashAll([
+        sessionId,
+        title,
+        phase,
+        sessionEnded,
+        permissionCount,
+        userInputCount,
+        interactionKind,
+        toolName,
+        description,
+        lastActivityAt,
+        createdAt,
+        workspace,
+        pinned,
+      ]);
 }
 
 abstract final class SessionStateExtractor {
@@ -288,9 +383,57 @@ abstract final class SessionStateExtractor {
     } catch (_) {
       return const [];
     }
+    return parseRoot(root);
+  }
+
+  static List<SessionState> parseRoot(dynamic root) {
     final states = <SessionState>[];
     _walk(root, 0, states);
     return states;
+  }
+
+  static List<String> parseRemoved(String body) {
+    final dynamic root;
+    try {
+      root = jsonDecode(body);
+    } catch (_) {
+      return const [];
+    }
+    return parseRemovedRoot(root);
+  }
+
+  static List<String> parseRemovedRoot(dynamic root) {
+    final removed = <String>[];
+    _walkRemoved(root, 0, removed);
+    return removed;
+  }
+
+  static void _walkRemoved(dynamic node, int depth, List<String> out) {
+    if (depth > _maxDepth || node == null) return;
+    if (node is Map) {
+      if (node['op'] == 'session.removed') {
+        final id = node['sessionId'];
+        if (id is String && id.isNotEmpty) out.add(id);
+      }
+      for (final value in node.values) {
+        _walkRemoved(value, depth + 1, out);
+      }
+    } else if (node is List) {
+      for (final value in node) {
+        _walkRemoved(value, depth + 1, out);
+      }
+    }
+  }
+
+  static String? workspaceBasenameOf(String? id) {
+    if (id == null) return null;
+    final trimmed = id.trim();
+    if (trimmed.isEmpty) return null;
+    final slash = trimmed.lastIndexOf('/');
+    final backslash = trimmed.lastIndexOf(r'\');
+    final cut = slash > backslash ? slash : backslash;
+    final base = (cut < 0 ? trimmed : trimmed.substring(cut + 1)).trim();
+    return base.isEmpty ? null : base;
   }
 
   static void _walk(dynamic node, int depth, List<SessionState> out) {
@@ -345,6 +488,9 @@ abstract final class SessionStateExtractor {
     }
 
     final title = node['title'];
+    final laa = node['lastActivityAt'];
+    final ca = node['createdAt'];
+    final ws = node['workspaceId'];
     return SessionState(
       sessionId: id,
       title: title is String ? title : null,
@@ -357,8 +503,312 @@ abstract final class SessionStateExtractor {
       interactionKind: interactionKind,
       toolName: toolName,
       description: description,
+      lastActivityAt: laa is num ? laa.toInt() : null,
+      createdAt: ca is num ? ca.toInt() : null,
+      workspace: workspaceBasenameOf(ws is String ? ws : null),
     );
   }
+}
+
+abstract final class TaskIndexExtractor {
+  static const int _maxDepth = 8;
+
+  static List<SessionState> parse(String body) {
+    final dynamic root;
+    try {
+      root = jsonDecode(body);
+    } catch (_) {
+      return const [];
+    }
+    return parseRoot(root);
+  }
+
+  static List<SessionState> parseRoot(dynamic root) {
+    final states = <SessionState>[];
+    _walk(root, 0, states);
+    return states;
+  }
+
+  static void _walk(dynamic node, int depth, List<SessionState> out) {
+    if (depth > _maxDepth || node == null) return;
+    if (node is Map) {
+      if (node['op'] == 'task.upserted' && node['task'] is Map) {
+        final state = _stateOf(node['task'] as Map<dynamic, dynamic>);
+        if (state != null) out.add(state);
+      }
+      for (final value in node.values) {
+        _walk(value, depth + 1, out);
+      }
+    } else if (node is List) {
+      for (final value in node) {
+        _walk(value, depth + 1, out);
+      }
+    }
+  }
+
+  static List<String> parseArchived(String body) {
+    final dynamic root;
+    try {
+      root = jsonDecode(body);
+    } catch (_) {
+      return const [];
+    }
+    return parseArchivedRoot(root);
+  }
+
+  static List<String> parseArchivedRoot(dynamic root) {
+    final archived = <String>[];
+    _walkArchived(root, 0, archived);
+    return archived;
+  }
+
+  static List<String> parseRemoved(String body) {
+    final dynamic root;
+    try {
+      root = jsonDecode(body);
+    } catch (_) {
+      return const [];
+    }
+    return parseRemovedRoot(root);
+  }
+
+  static List<String> parseRemovedRoot(dynamic root) {
+    final removed = <String>[];
+    _walkRemoved(root, 0, removed);
+    return removed;
+  }
+
+  static void _walkRemoved(dynamic node, int depth, List<String> out) {
+    if (depth > _maxDepth || node == null) return;
+    if (node is Map) {
+      if (node['op'] == 'task.removed' && node['address'] is Map) {
+        final id = (node['address'] as Map<dynamic, dynamic>)['taskId'];
+        if (id is String && id.isNotEmpty) out.add(id);
+      }
+      for (final value in node.values) {
+        _walkRemoved(value, depth + 1, out);
+      }
+    } else if (node is List) {
+      for (final value in node) {
+        _walkRemoved(value, depth + 1, out);
+      }
+    }
+  }
+
+  static void _walkArchived(dynamic node, int depth, List<String> out) {
+    if (depth > _maxDepth || node == null) return;
+    if (node is Map) {
+      if (node['op'] == 'task.upserted' && node['task'] is Map) {
+        final task = node['task'] as Map<dynamic, dynamic>;
+        final membership = task['membership'];
+        if (membership is Map && membership['archived'] == true) {
+          final id = _taskIdOf(task);
+          if (id != null) out.add(id);
+        }
+      }
+      for (final value in node.values) {
+        _walkArchived(value, depth + 1, out);
+      }
+    } else if (node is List) {
+      for (final value in node) {
+        _walkArchived(value, depth + 1, out);
+      }
+    }
+  }
+
+  static String? _taskIdOf(Map<dynamic, dynamic> task) {
+    final address = task['address'];
+    if (address is Map) {
+      final id = address['taskId'];
+      if (id is String && id.isNotEmpty) return id;
+    }
+    final meta = task['meta'];
+    if (meta is Map) {
+      final id = meta['taskId'];
+      if (id is String && id.isNotEmpty) return id;
+    }
+    return null;
+  }
+
+  static List<SessionState>? parseSnapshot(String body) {
+    final dynamic root;
+    try {
+      root = jsonDecode(body);
+    } catch (_) {
+      return null;
+    }
+    return parseSnapshotRoot(root);
+  }
+
+  static List<SessionState>? parseSnapshotRoot(dynamic root) {
+    final snapshot = _findTasksSnapshot(root, 0);
+    if (snapshot == null) return null;
+    final out = <SessionState>[];
+    for (final t in snapshot) {
+      if (t is Map<dynamic, dynamic>) {
+        final state = _stateOf(t);
+        if (state != null) out.add(state);
+      }
+    }
+    return out;
+  }
+
+  static List<dynamic>? _findTasksSnapshot(dynamic node, int depth) {
+    if (depth > _maxDepth || node is! Map) return null;
+    final payload = node['payload'];
+    if (payload is Map && payload['kind'] == 'snapshot') {
+      final snapshot = payload['snapshot'];
+      if (snapshot is Map && snapshot['tasks'] is List) {
+        return snapshot['tasks'] as List<dynamic>;
+      }
+    }
+    for (final value in node.values) {
+      final found = _findTasksSnapshot(value, depth + 1);
+      if (found != null) return found;
+    }
+    return null;
+  }
+
+  static List<SessionState>? parseResultTasks(String body) {
+    final dynamic root;
+    try {
+      root = jsonDecode(body);
+    } catch (_) {
+      return null;
+    }
+    return parseResultTasksRoot(root);
+  }
+
+  static List<SessionState>? parseResultTasksRoot(dynamic root) {
+    final tasks = _findResultTasks(root, 0);
+    if (tasks == null) return null;
+    final out = <SessionState>[];
+    for (final t in tasks) {
+      if (t is! Map<dynamic, dynamic>) continue;
+      final state = _stateOfFlat(t);
+      if (state != null) out.add(state);
+    }
+    return out;
+  }
+
+  static List<dynamic>? _findResultTasks(dynamic node, int depth) {
+    if (depth > _maxDepth || node is! Map) return null;
+    final result = node['result'];
+    if (result is Map && result['tasks'] is List) {
+      return result['tasks'] as List<dynamic>;
+    }
+    for (final value in node.values) {
+      final found = _findResultTasks(value, depth + 1);
+      if (found != null) return found;
+    }
+    return null;
+  }
+
+  static bool isBootstrapResult(dynamic root) {
+    if (root is! Map) return false;
+    final payload = root['payload'];
+    if (payload is! Map) return false;
+    final requestId = payload['requestId'];
+    return requestId is String && requestId.startsWith('bootstrap');
+  }
+
+  static SessionState? _stateOfFlat(Map<dynamic, dynamic> t) {
+    final id = t['taskId'];
+    if (id is! String || id.isEmpty) return null;
+    final status = t['displayStatus'];
+    final phase = status is String ? _phaseFromStatus(status) : null;
+    final laa = t['updatedAt'];
+    final ca = t['createdAt'];
+    final wsPath = t['workspacePath'];
+    final wsLabel = t['workspaceLabel'];
+    return SessionState(
+      sessionId: id,
+      title: t['title'] is String ? t['title'] as String? : null,
+      phase: phase,
+      lastActivityAt: laa is num ? laa.toInt() : null,
+      createdAt: ca is num ? ca.toInt() : null,
+      workspace: wsLabel is String && wsLabel.isNotEmpty
+          ? wsLabel
+          : SessionStateExtractor.workspaceBasenameOf(
+              wsPath is String ? wsPath : null,
+            ),
+    );
+  }
+
+  static SessionState? _stateOf(Map<dynamic, dynamic> task) {
+    final taskId = _taskIdOf(task);
+    if (taskId == null) return null;
+
+    final membership = task['membership'];
+    if (membership is Map && membership['archived'] == true) return null;
+
+    final address = task['address'];
+    final meta = task['meta'];
+    final activity = task['activity'];
+
+    String? workspacePath;
+    if (address is Map) {
+      final p = address['workspacePath'];
+      if (p is String && p.isNotEmpty) workspacePath = p;
+    }
+    if (workspacePath == null && meta is Map) {
+      final p = meta['workspacePath'];
+      if (p is String && p.isNotEmpty) workspacePath = p;
+    }
+
+    String? title;
+    if (meta is Map) {
+      final t = meta['title'];
+      if (t is String && t.isNotEmpty) title = t;
+    }
+
+    int? lastActivityAt;
+    if (activity is Map) {
+      final v = activity['lastActivityAt'];
+      if (v is num) lastActivityAt = v.toInt();
+    }
+    if (lastActivityAt == null && meta is Map) {
+      final v = meta['updatedAt'];
+      if (v is num) lastActivityAt = v.toInt();
+    }
+
+    int? createdAt;
+    if (meta is Map) {
+      final v = meta['createdAt'];
+      if (v is num) createdAt = v.toInt();
+    }
+
+    String? phase;
+    if (activity is Map) {
+      final p = activity['phase'];
+      if (p is String && p.isNotEmpty) phase = p;
+    }
+    if (phase == null) {
+      final live = task['liveStatus'];
+      if (live is String && live.isNotEmpty) phase = live;
+    }
+    if (phase == null && meta is Map) {
+      final status = meta['status'];
+      if (status is String) phase = _phaseFromStatus(status);
+    }
+
+    return SessionState(
+      sessionId: taskId,
+      title: title,
+      phase: phase,
+      lastActivityAt: lastActivityAt,
+      createdAt: createdAt,
+      workspace: SessionStateExtractor.workspaceBasenameOf(workspacePath),
+      pinned: membership is Map && membership['pinned'] == true,
+    );
+  }
+
+  static String? _phaseFromStatus(String status) => switch (status) {
+    'completed' => 'completedSuccess',
+    'error' => 'error',
+    'running' => 'running',
+    _ => null,
+  };
 }
 
 class StateDiffer {
@@ -366,8 +816,21 @@ class StateDiffer {
 
   final Map<String, SessionState> _prev = {};
 
-  List<ObservedEvent> apply(List<SessionState> incoming) {
+  List<ObservedEvent> apply(List<SessionState> incoming, {List<String> removed = const []}) {
     final events = <ObservedEvent>[];
+    for (final id in removed) {
+      final gone = _prev.remove(id);
+      if (gone != null &&
+          (gone.permissionCount > 0 || gone.userInputCount > 0)) {
+        events.add(
+          ObservedEvent(
+            type: 'resolved',
+            taskId: id,
+            sessionTitle: gone.title,
+          ),
+        );
+      }
+    }
     for (final next in incoming) {
       final prev = _prev[next.sessionId];
       _prev[next.sessionId] = next;
@@ -392,6 +855,17 @@ class StateDiffer {
             taskId: next.sessionId,
             sessionTitle: next.title,
             summary: next.description,
+          ),
+        );
+      }
+
+      if ((prevPerm > 0 && next.permissionCount == 0) ||
+          (prevInput > 0 && next.userInputCount == 0)) {
+        events.add(
+          ObservedEvent(
+            type: 'resolved',
+            taskId: next.sessionId,
+            sessionTitle: next.title,
           ),
         );
       }
@@ -424,6 +898,23 @@ class StateDiffer {
   }
 }
 
+abstract final class MobileViewStateSync {
+  static ({bool valid, String? taskId}) parse(String body) {
+    final dynamic root;
+    try {
+      root = jsonDecode(body);
+    } catch (_) {
+      return (valid: false, taskId: null);
+    }
+    if (root is! Map) return (valid: false, taskId: null);
+    if (root['activeWorkspaceKey'] is! String) {
+      return (valid: false, taskId: null);
+    }
+    final id = root['activeTaskId'];
+    return (valid: true, taskId: id is String && id.isNotEmpty ? id : null);
+  }
+}
+
 abstract final class ActiveSessionExtractor {
   static const int _maxDepth = 6;
 
@@ -434,11 +925,18 @@ abstract final class ActiveSessionExtractor {
     } catch (_) {
       return null;
     }
-    return _walk(root, 0);
+    return parseRoot(root);
   }
+
+  static String? parseRoot(dynamic root) => _walk(root, 0);
 
   static String? _walk(dynamic node, int depth) {
     if (depth > _maxDepth || node is! Map) return null;
+    final topic = node['topic'];
+    if (topic is String && topic.startsWith('conversation/')) {
+      final sid = topic.substring('conversation/'.length);
+      if (sid.isNotEmpty) return sid;
+    }
     final view = node['mobileViewState'];
     if (view is Map) {
       final id = view['activeTaskId'];

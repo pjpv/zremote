@@ -11,8 +11,8 @@ void main() {
     addTearDown(container.dispose);
   });
 
-  ObservedEvent ev(String type, {String? summary}) =>
-      ObservedEvent(type: type, summary: summary);
+  ObservedEvent ev(String type, {String? summary, String? taskId}) =>
+      ObservedEvent(type: type, summary: summary, taskId: taskId);
 
   group('EventFeedNotifier', () {
     test('白名单事件计数 +1', () {
@@ -66,6 +66,24 @@ void main() {
       final state = container.read(eventFeedProvider);
       expect(state.containsKey('d1'), isFalse);
       expect(state['d2']?.unread, 1);
+    });
+
+    test('resolved 清审批红旗，未读数不动（历史是历史）', () {
+      final notifier = container.read(eventFeedProvider.notifier);
+      notifier.ingest('d1', ev('permission_request', summary: 'npm install'));
+      notifier.ingest('d1', ev('completed'));
+      notifier.ingest('d1', ev('resolved', taskId: 'sess_b'));
+
+      final feed = container.read(eventFeedProvider)['d1'];
+      expect(feed?.unread, 2, reason: 'resolved 不计入未读');
+      expect(feed?.permPending, isFalse, reason: '待办已解决，红旗必须落下');
+      expect(feed?.lastSummary, 'completed', reason: 'resolved 不覆盖摘要');
+    });
+
+    test('resolved 在空 feed 上 no-op（不建条目）', () {
+      final notifier = container.read(eventFeedProvider.notifier);
+      notifier.ingest('d1', ev('resolved'));
+      expect(container.read(eventFeedProvider).containsKey('d1'), isFalse);
     });
   });
 }

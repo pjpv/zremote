@@ -143,6 +143,11 @@ class _BiometricGateState extends ConsumerState<BiometricGate>
       final reason = (AppLocalizations.of(context) ?? l10nZh).unlockReason;
       final ok = await widget.authenticate(reason);
       if (mounted && ok) setState(() => _authed = true);
+    } on BiometricUnavailableException {
+      if (mounted) {
+        await ref.read(biometricProvider.notifier).set(false);
+        if (mounted) setState(() => _authed = true);
+      }
     } catch (_) {
     } finally {
       _authenticating = false;

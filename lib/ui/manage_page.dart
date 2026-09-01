@@ -4,6 +4,8 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/device.dart';
+import '../services/app_settings.dart';
+import '../services/device_import.dart';
 import '../services/keepalive.dart';
 import '../services/link_builder.dart';
 import '../state/app_lifecycle.dart';
@@ -105,35 +107,13 @@ class ManagePage extends ConsumerWidget {
   }
 
   Future<void> _showPasteDialog(BuildContext context, WidgetRef ref) async {
-    final controller = TextEditingController();
     final l10n = AppLocalizations.of(context)!;
-    final ok = await showDialog<bool>(
+    final text = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.pasteDialogTitle),
-        content: TextField(
-          controller: controller,
-          maxLines: 3,
-          autofocus: true,
-          style: const TextStyle(fontSize: 13),
-          decoration: const InputDecoration(
-            hintText: 'https://zcode.z.ai/remote/v4?sid=...&hash=...',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(l10n.commonCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(l10n.importButton),
-          ),
-        ],
-      ),
+      builder: (dialogContext) => _PasteDialog(l10n: l10n),
     );
-    if (ok != true || !context.mounted) return;
-    await _importFromText(context, ref, controller.text);
+    if (text == null || !context.mounted) return;
+    await _importFromText(context, ref, text);
   }
 
   Future<void> _importFromText(
@@ -151,6 +131,18 @@ class ManagePage extends ConsumerWidget {
       return;
     }
     final devices = ref.read(deviceListProvider);
+    final dup = findDuplicateBySid(devices, device);
+    if (dup != null) {
+      if (context.mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.importDuplicate(dup.displayName(l10n)))),
+        );
+        final index = ref.read(deviceListProvider).indexOf(dup);
+        if (index >= 0) ref.read(activeTabProvider.notifier).set(index);
+      }
+      return;
+    }
     if (devices.length == 5 && context.mounted) {
       final l10n = AppLocalizations.of(context)!;
       await showDialog<void>(
@@ -169,6 +161,89 @@ class ManagePage extends ConsumerWidget {
     }
     await ref.read(deviceListProvider.notifier).add(device);
     ref.read(activeTabProvider.notifier).set(devices.length);
+  }
+}
+
+class _PasteDialog extends StatefulWidget {
+  const _PasteDialog({required this.l10n});
+
+  final AppLocalizations l10n;
+
+  @override
+  State<_PasteDialog> createState() => _PasteDialogState();
+}
+
+class _PasteDialogState extends State<_PasteDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.l10n.pasteDialogTitle),
+      content: TextField(
+        controller: _controller,
+        maxLines: 3,
+        autofocus: true,
+        style: const TextStyle(fontSize: 13),
+        decoration: const InputDecoration(
+          hintText: 'https://zcode.z.ai/remote/v4?sid=...&hash=...',
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(widget.l10n.commonCancel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, _controller.text),
+          child: Text(widget.l10n.importButton),
+        ),
+      ],
+    );
+  }
+}
+
+class _RenameDialog extends StatefulWidget {
+  const _RenameDialog({required this.l10n, required this.initialName});
+
+  final AppLocalizations l10n;
+  final String initialName;
+
+  @override
+  State<_RenameDialog> createState() => _RenameDialogState();
+}
+
+class _RenameDialogState extends State<_RenameDialog> {
+  late final _controller = TextEditingController(text: widget.initialName);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.l10n.renameDialogTitle),
+      content: TextField(controller: _controller, autofocus: true),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(widget.l10n.commonCancel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, _controller.text),
+          child: Text(widget.l10n.commonSave),
+        ),
+      ],
+    );
   }
 }
 
@@ -336,28 +411,18 @@ class _DeviceCard extends ConsumerWidget {
   }
 
   Future<void> _rename(BuildContext context, WidgetRef ref) async {
-    final controller = TextEditingController(text: device.label);
     final l10n = AppLocalizations.of(context)!;
     final name = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.renameDialogTitle),
-        content: TextField(controller: controller, autofocus: true),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(l10n.commonCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, controller.text),
-            child: Text(l10n.commonSave),
-          ),
-        ],
+      builder: (dialogContext) => _RenameDialog(
+        l10n: l10n,
+        initialName: device.label,
       ),
     );
-    if (name == null || name.trim().isEmpty) return;
-    if (!context.mounted) return;
-    await ref.read(deviceListProvider.notifier).rename(device.id, name);
+    final ok = name != null && name.trim().isNotEmpty;
+    if (ok && context.mounted) {
+      await ref.read(deviceListProvider.notifier).rename(device.id, name);
+    }
   }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
@@ -477,10 +542,67 @@ class ScannerPage extends ConsumerStatefulWidget {
   ConsumerState<ScannerPage> createState() => _ScannerPageState();
 }
 
-class _ScannerPageState extends ConsumerState<ScannerPage> {
+class _ScannerPageState extends ConsumerState<ScannerPage>
+    with WidgetsBindingObserver {
   String? _lastCode;
   DateTime _lastAccept = DateTime.fromMillisecondsSinceEpoch(0);
   bool _navigating = false;
+
+  MobileScannerController? _controller;
+
+  bool _permDenied = false;
+
+  int _scannerGeneration = 0;
+
+  @visibleForTesting
+  void debugMarkPermDenied() => _permDenied = true;
+
+  @visibleForTesting
+  int get debugScannerGeneration => _scannerGeneration;
+
+  Future<void> _guarded(Future<void> Function() f) async {
+    try {
+      await f();
+    } catch (_) {}
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _controller = MobileScannerController();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final controller = _controller;
+    if (controller == null) return;
+    switch (state) {
+      case AppLifecycleState.resumed:
+        if (_permDenied) {
+          _permDenied = false;
+          setState(() {
+            _scannerGeneration++;
+            _controller = MobileScannerController();
+          });
+          _guarded(controller.dispose);
+        } else {
+          _guarded(controller.start);
+        }
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.detached:
+        _guarded(controller.stop);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -503,7 +625,18 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          MobileScanner(onDetect: (capture) => _onDetect(capture)),
+          MobileScanner(
+            key: ValueKey(_scannerGeneration),
+            controller: _controller,
+            onDetect: (capture) => _onDetect(capture),
+            errorBuilder: (context, error) {
+              if (error.errorCode != MobileScannerErrorCode.permissionDenied) {
+                return const SizedBox.shrink();
+              }
+              _permDenied = true;
+              return _PermDeniedView();
+            },
+          ),
           Positioned.fill(
             child: IgnorePointer(
               child: CustomPaint(painter: _ScannerOverlayPainter()),
@@ -556,6 +689,20 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
       return;
     }
 
+    final dup = findDuplicateBySid(ref.read(deviceListProvider), device);
+    if (dup != null) {
+      _navigating = true;
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.importDuplicate(dup.displayName(l10n)))),
+      );
+      Navigator.of(context).pop();
+      final index = ref.read(deviceListProvider).indexOf(dup);
+      if (index >= 0) ref.read(activeTabProvider.notifier).set(index);
+      return;
+    }
+
     _navigating = true;
     await ref.read(deviceListProvider.notifier).add(device);
     if (!mounted) return;
@@ -563,6 +710,50 @@ class _ScannerPageState extends ConsumerState<ScannerPage> {
     ref
         .read(activeTabProvider.notifier)
         .set(ref.read(deviceListProvider).length - 1);
+  }
+}
+
+class _PermDeniedView extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Container(
+      color: Colors.black,
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.no_photography_outlined,
+              size: 44,
+              color: Colors.white54,
+            ),
+            const SizedBox(height: 18),
+            Text(
+              l10n.scannerPermTitle,
+              style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.scannerPermBody,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 13, height: 1.5, color: Colors.white70),
+            ),
+            const SizedBox(height: 22),
+            FilledButton.icon(
+              onPressed: AppSettings.open,
+              icon: const Icon(Icons.settings_outlined, size: 18),
+              label: Text(l10n.scannerPermOpenSettings),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

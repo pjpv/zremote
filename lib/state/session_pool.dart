@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/device.dart';
@@ -48,6 +51,10 @@ final deviceListProvider =
     );
 
 class ActiveTabNotifier extends Notifier<int> {
+  bool _restoreDone = false;
+
+  bool _jumpedBeforeRestore = false;
+
   @override
   int build() => 0;
 
@@ -55,6 +62,26 @@ class ActiveTabNotifier extends Notifier<int> {
     final count = ref.read(deviceListProvider).length;
     if (index < 0 || index > count) return;
     state = index;
+    if (index < count) {
+      _jumpedBeforeRestore = true;
+      unawaited(
+        DeviceStore.instance.setLastDeviceId(
+          ref.read(deviceListProvider)[index].id,
+        ).catchError((e) {
+          debugPrint('[ZR] lastDevice 落盘失败: $e');
+        }),
+      );
+    }
+  }
+
+  Future<void> restoreLast() async {
+    if (_restoreDone || _jumpedBeforeRestore) return;
+    _restoreDone = true;
+    final id = await DeviceStore.instance.lastDeviceId();
+    if (_jumpedBeforeRestore) return;
+    if (id == null) return;
+    final index = ref.read(deviceListProvider).indexWhere((d) => d.id == id);
+    if (index >= 0) state = index;
   }
 
   void clampTo(int childCount) {

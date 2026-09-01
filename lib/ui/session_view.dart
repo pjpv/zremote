@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:collection';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,13 +11,17 @@ import '../models/device.dart';
 import '../services/event_observer.dart';
 import '../services/link_builder.dart';
 import '../services/notifier.dart';
+import '../services/session_jump.dart';
+import '../state/active_session.dart';
 import '../state/app_lifecycle.dart';
 import '../state/event_feed.dart';
 import '../state/notification_prefs.dart';
+import '../state/session_index.dart';
 import '../state/session_pool.dart';
 import '../state/session_status.dart';
 import '../theme.dart';
 import '../models/device_label.dart';
+import 'session_panel.dart';
 import 'unread_badge.dart';
 
 class SessionView extends ConsumerStatefulWidget {
@@ -35,6 +41,8 @@ class _SessionViewState extends ConsumerState<SessionView> {
 
   SessionStatusNotifier? _statusNotifier;
   EventFeedNotifier? _feedNotifier;
+  SessionIndexNotifier? _sessionIndexNotifier;
+  ActiveSessionNotifier? _activeSessionNotifier;
 
   final StateDiffer _stateDiffer = StateDiffer();
 
@@ -45,10 +53,23 @@ class _SessionViewState extends ConsumerState<SessionView> {
     super.didChangeDependencies();
     _statusNotifier ??= ref.read(sessionStatusProvider.notifier);
     _feedNotifier ??= ref.read(eventFeedProvider.notifier);
+    _sessionIndexNotifier ??= ref.read(sessionIndexProvider.notifier);
+    _activeSessionNotifier ??= ref.read(activeSessionProvider.notifier);
   }
 
   void _report(SessionStatus status) =>
       _statusNotifier?.report(widget.device.id, status);
+
+  void _onWsEvent(String body) {
+    if (!mounted) return;
+    try {
+      final event = jsonDecode(body);
+      if (event is Map<String, dynamic>) {
+        final status = RelayLedPolicy.onWsEvent(event);
+        if (status != null) _report(status);
+      }
+    } catch (_) {}
+  }
 
   void _goHome() => ref
       .read(activeTabProvider.notifier)
@@ -56,12 +77,77 @@ class _SessionViewState extends ConsumerState<SessionView> {
 
   void _onBridgeMessage(String body) {
     if (!mounted) return;
-    final activeSession = ActiveSessionExtractor.parse(body);
-    if (activeSession != null) _activeSessionId = activeSession;
+    if (kDebugMode) {
+      try {
+        final hit = body.contains('tasks-index');
+        if (body.contains('snapshot') || body.length > 20000) {
+          final snapN = TaskIndexExtractor.parseSnapshotRoot(jsonDecode(body));
+          debugPrint('[zr-big] len=${body.length} tasks-index=$hit snap=${snapN?.length}');
+        } else {
+          debugPrint('[zr-frame] len=${body.length} tasks-index=$hit');
+        }
+      } catch (e) {
+        debugPrint('[zr-frame] decode-fail len=${body.length}');
+      }
+    }
+    dynamic root;
+    try {
+      root = jsonDecode(body);
+    } catch (_) {
+      root = null;
+    }
+    final frameLed = RelayLedPolicy.onFrameRoot(root);
+    if (frameLed != null) _report(frameLed);
+
+    final activeSession = ActiveSessionExtractor.parseRoot(root);
+    if (activeSession != null) {
+      _activeSessionId = activeSession;
+      _activeSessionNotifier?.report(widget.device.id, activeSession);
+    }
+    final states = SessionStateExtractor.parseRoot(root);
+    final removed = [
+      ...SessionStateExtractor.parseRemovedRoot(root),
+      ...TaskIndexExtractor.parseRemovedRoot(root),
+      ...TaskIndexExtractor.parseArchivedRoot(root),
+    ];
+    _sessionIndexNotifier?.upsertAll(widget.device.id, states);
+    _sessionIndexNotifier?.removeSessions(widget.device.id, removed);
+    final snapshotTasks = TaskIndexExtractor.parseSnapshotRoot(root);
+    if (snapshotTasks != null) {
+      _sessionIndexNotifier?.replaceTasks(widget.device.id, snapshotTasks);
+      if (kDebugMode) {
+        debugPrint(
+          '[zr-snap] applied=${snapshotTasks.length} '
+          'workspaces=${snapshotTasks.map((t) => t.workspace).toSet().length}',
+        );
+      }
+    } else {
+      final taskEntries = TaskIndexExtractor.parseRoot(root);
+      _sessionIndexNotifier?.upsertTasks(widget.device.id, taskEntries);
+    }
+    final resultTasks = TaskIndexExtractor.parseResultTasksRoot(root);
+    if (resultTasks != null && resultTasks.isNotEmpty) {
+      if (TaskIndexExtractor.isBootstrapResult(root)) {
+        _sessionIndexNotifier?.replaceTasks(
+          widget.device.id,
+          resultTasks,
+          preservePinned: true,
+        );
+      } else {
+        _sessionIndexNotifier?.upsertTasks(widget.device.id, resultTasks);
+      }
+      if (kDebugMode) {
+        debugPrint(
+          '[zr-result] ${TaskIndexExtractor.isBootstrapResult(root) ? 'bootstrap' : 'other'} '
+          'applied=${resultTasks.length} '
+          'workspaces=${resultTasks.map((t) => t.workspace).toSet().length}',
+        );
+      }
+    }
 
     final events = <ObservedEvent>[
-      ...EventParser.parseMessage(body),
-      ..._stateDiffer.apply(SessionStateExtractor.parse(body)),
+      ...EventParser.parseRoot(root),
+      ..._stateDiffer.apply(states, removed: removed),
     ];
     if (events.isEmpty) return;
     final devices = ref.read(deviceListProvider);
@@ -71,6 +157,14 @@ class _SessionViewState extends ConsumerState<SessionView> {
         ref.read(appLifecycleProvider) == AppLifecycleState.resumed;
     final prefs = ref.read(notificationPrefsProvider);
     for (final event in events) {
+      if (event.type == 'resolved') {
+        final taskId = event.taskId;
+        if (taskId != null) {
+          NotifierService.instance.cancelPending(widget.device, taskId);
+        }
+        _feedNotifier?.ingest(widget.device.id, event);
+        continue;
+      }
       if (!prefs.enabled(event.type)) continue;
       final notify = NotificationGate.shouldNotify(
         appForeground: appForeground,
@@ -87,6 +181,14 @@ class _SessionViewState extends ConsumerState<SessionView> {
         l10n: AppLocalizations.of(context),
       );
     }
+  }
+
+  void _onViewStateSync(String body) {
+    if (!mounted) return;
+    final r = MobileViewStateSync.parse(body);
+    if (!r.valid) return;
+    _activeSessionId = r.taskId;
+    _activeSessionNotifier?.report(widget.device.id, r.taskId);
   }
 
   URLRequest _freshRequest() =>
@@ -181,10 +283,73 @@ class _SessionViewState extends ConsumerState<SessionView> {
     );
   }
 
+  Future<void> _showSessionPanel() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: ZT.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 10),
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: ZT.hairline,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Flexible(
+                child: Consumer(
+                  builder: (context, ref, _) {
+                    final sessionsMap =
+                        ref.watch(sessionIndexProvider)[widget.device.id];
+                    final sorted =
+                        (sessionsMap?.values.toList() ?? <SessionState>[])
+                          ..sort(SessionRanking.compareSessions);
+                    final activeId =
+                        ref.watch(activeSessionProvider)[widget.device.id];
+                    return SessionPanelSheet(
+                      sessions: sorted,
+                      activeSessionId: activeId,
+                      onSessionTap: (sessionId) {
+                        Navigator.pop(sheetContext);
+                        _jumpToSession(sessionId);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _jumpToSession(String sessionId) async {
+    final controller = _controller;
+    if (controller == null) return;
+    try {
+      await controller.evaluateJavascript(
+        source: SessionJump.jumpScript(sessionId),
+      );
+    } catch (_) {}
+  }
+
   @override
   void dispose() {
     _statusNotifier?.forget(widget.device.id);
     _feedNotifier?.forget(widget.device.id);
+    _sessionIndexNotifier?.forget(widget.device.id);
+    _activeSessionNotifier?.forget(widget.device.id);
     super.dispose();
   }
 
@@ -235,6 +400,11 @@ class _SessionViewState extends ConsumerState<SessionView> {
               : const SizedBox(height: 2, width: double.infinity),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.article_outlined),
+            tooltip: l10n.sessionsPanelTooltip,
+            onPressed: _showSessionPanel,
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: l10n.refreshTooltip,
@@ -313,6 +483,22 @@ class _SessionViewState extends ConsumerState<SessionView> {
                     return null;
                   },
                 );
+                controller.addJavaScriptHandler(
+                  handlerName: 'zrViewState',
+                  callback: (args) {
+                    final body = args.isNotEmpty ? args.first : null;
+                    if (body is String) _onViewStateSync(body);
+                    return null;
+                  },
+                );
+                controller.addJavaScriptHandler(
+                  handlerName: 'zrWs',
+                  callback: (args) {
+                    final body = args.isNotEmpty ? args.first : null;
+                    if (body is String) _onWsEvent(body);
+                    return null;
+                  },
+                );
               },
               onLoadStart: (_, _) {
                 if (mounted) {
@@ -326,11 +512,25 @@ class _SessionViewState extends ConsumerState<SessionView> {
               onLoadStop: (_, _) {
                 if (mounted) {
                   setState(() => _loading = false);
-                  _report(SessionStatus.live);
                 }
               },
               onReceivedError: (controller, request, error) async {
-                if (mounted) setState(() => _loading = false);
+                if (!mounted) return;
+                if (!PageLoadPolicy.isMainDocFailure(request.isForMainFrame)) {
+                  return;
+                }
+                setState(() => _loading = false);
+                await _onLoadError();
+              },
+              onReceivedHttpError: (controller, request, errorResponse) async {
+                if (!mounted) return;
+                if (!PageLoadPolicy.isHttpFailure(
+                  request.isForMainFrame,
+                  errorResponse.statusCode,
+                )) {
+                  return;
+                }
+                setState(() => _loading = false);
                 await _onLoadError();
               },
             ),

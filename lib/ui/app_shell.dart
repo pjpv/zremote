@@ -58,6 +58,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       ref.read(activeTabProvider.notifier).clampTo(count);
       if (prev != null && prev.isEmpty && next.isNotEmpty) {
         _consumePendingTap();
+        ref.read(activeTabProvider.notifier).restoreLast();
       }
     });
 

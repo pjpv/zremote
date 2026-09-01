@@ -31,6 +31,17 @@ class NotificationSpec {
           (event.taskId?.hashCode ?? 0)) &
       0x7FFFFFFF;
 
+  static Set<int> cancellableIds(RemoteDevice device, String taskId) => {
+        stableId(
+          device,
+          ObservedEvent(type: 'permission_request', taskId: taskId),
+        ),
+        stableId(
+          device,
+          ObservedEvent(type: 'elicitation_request', taskId: taskId),
+        ),
+      };
+
   static NotificationSpec? from(
     RemoteDevice device,
     ObservedEvent event, [
@@ -182,6 +193,15 @@ class NotifierService {
         payload: spec.payload,
       );
     } catch (_) {
+    }
+  }
+
+  Future<void> cancelPending(RemoteDevice device, String taskId) async {
+    for (final id in NotificationSpec.cancellableIds(device, taskId)) {
+      try {
+        await _plugin.cancel(id: id);
+      } catch (_) {
+      }
     }
   }
 }

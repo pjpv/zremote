@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/widgets.dart' show Locale;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -101,9 +103,20 @@ void main() {
 
     test('上报走 zrEvents handler', () {
       expect(
-        EventObserver.hookScript.contains("callHandler('zrEvents'"),
+        EventObserver.hookScript.contains("post('zrEvents'"),
         isTrue,
       );
+    });
+
+    test('早桥队列（r8 根因修复）：桥未就绪缓存、就绪后按序冲刷', () {
+      final s = EventObserver.hookScript;
+      expect(s.contains("addEventListener('flutterInAppWebViewPlatformReady'"),
+          isTrue);
+      expect(s.contains("post('zrViewState', b)"), isTrue);
+      expect(s.contains("post('zrWs', event)"), isTrue);
+      expect(s.contains('qMaxEntries'), isTrue);
+      expect(s.contains('q.shift()'), isTrue);
+      expect(s.contains('clearInterval(flushTimer)'), isTrue);
     });
 
     test('EventSource 包装转发类静态量（CONNECTING/OPEN/CLOSED）', () {
@@ -127,6 +140,12 @@ void main() {
         EventObserver.hookScript.contains("res.headers.get('content-length')"),
         isTrue,
       );
+    });
+
+    test('体积上限已常量化为 4MB：4194304 在案、旧值 262144 绝迹', () {
+      expect(EventObserver.hookScript.contains('4194304'), isTrue);
+      expect(EventObserver.hookScript.contains('262144'), isFalse);
+      expect(kMaxListenBytes, 4194304);
     });
 
     test('WebSocket 包装只监听 message 帧', () {
@@ -348,8 +367,20 @@ void main() {
   const framePermResolved =
       '{"wireVersion":3,"kind":"complete","deliveryKind":"online","frame":{"topic":"sessions-index/x","payload":{"kind":"deltas","deltas":[{"op":"session.upserted","session":{"sessionId":"sess_b","title":"hi","phase":"running","sessionEnded":false,"pendingInteractionSummary":{"permissionCount":0,"userInputCount":0},"lastActivityAt":4}}]}}}';
 
+  const framePlainC =
+      '{"wireVersion":3,"kind":"complete","deliveryKind":"online","frame":{"topic":"sessions-index/x","payload":{"kind":"deltas","deltas":[{"op":"session.upserted","session":{"sessionId":"sess_c","title":"部署","phase":"running","sessionEnded":false,"pendingInteractionSummary":{"permissionCount":0,"userInputCount":0},"lastActivityAt":8}}]}}}';
+
+  const frameRemovedB =
+      '{"wireVersion":3,"kind":"complete","deliveryKind":"online","frame":{"topic":"sessions-index/x","payload":{"kind":"deltas","deltas":[{"op":"session.removed","sessionId":"sess_b"}]}}}';
+
   const frameUserInput =
       '{"wireVersion":3,"kind":"complete","deliveryKind":"online","frame":{"topic":"sessions-index/x","payload":{"kind":"deltas","deltas":[{"op":"session.upserted","session":{"sessionId":"sess_c","title":"部署","phase":"running","sessionEnded":false,"pendingInteraction":{"kind":"elicitation"},"pendingInteractionSummary":{"permissionCount":0,"userInputCount":2},"lastActivityAt":5}}]}}}';
+
+  const framePermTwo =
+      '{"wireVersion":3,"kind":"complete","deliveryKind":"online","frame":{"topic":"sessions-index/x","payload":{"kind":"deltas","deltas":[{"op":"session.upserted","session":{"sessionId":"sess_b","title":"hi","phase":"running","sessionEnded":false,"pendingInteractionSummary":{"permissionCount":2,"userInputCount":0},"lastActivityAt":6}}]}}}';
+
+  const frameUserInputResolved =
+      '{"wireVersion":3,"kind":"complete","deliveryKind":"online","frame":{"topic":"sessions-index/x","payload":{"kind":"deltas","deltas":[{"op":"session.upserted","session":{"sessionId":"sess_c","title":"部署","phase":"running","sessionEnded":false,"pendingInteractionSummary":{"permissionCount":0,"userInputCount":0},"lastActivityAt":7}}]}}}';
 
   group('SessionStateExtractor + StateDiffer（快照差分）', () {
     test('提取：从逻辑帧嵌套里挖出 session 状态', () {
@@ -383,14 +414,41 @@ void main() {
       );
     });
 
-    test('差分：权限解除（1→0）不发事件', () {
+    test('差分：权限解除（1→0）发 resolved（通知撤回信号）', () {
       final differ = StateDiffer();
       differ.apply(SessionStateExtractor.parse(frameBaseline));
       differ.apply(SessionStateExtractor.parse(framePermAppears));
+      final events =
+          differ.apply(SessionStateExtractor.parse(framePermResolved));
+      expect(events, hasLength(1));
+      expect(events.first.type, 'resolved');
+      expect(events.first.taskId, 'sess_b');
+      expect(events.first.sessionTitle, 'hi');
+    });
+
+    test('差分：计数下降未归零（2→1）不发 resolved——剩 2 个待审时通知仍有效', () {
+      final differ = StateDiffer();
+      differ.apply(SessionStateExtractor.parse(framePermAppears));
+      differ.apply(SessionStateExtractor.parse(framePermTwo));
       expect(
-        differ.apply(SessionStateExtractor.parse(framePermResolved)),
+        differ.apply(SessionStateExtractor.parse(framePermAppears)),
         isEmpty,
       );
+    });
+
+    test('差分：userInput 归零（2→0）也发 resolved', () {
+      final differ = StateDiffer();
+      differ.apply(SessionStateExtractor.parse(frameUserInput));
+      final events =
+          differ.apply(SessionStateExtractor.parse(frameUserInputResolved));
+      expect(events, hasLength(1));
+      expect(events.first.type, 'resolved');
+      expect(events.first.taskId, 'sess_c');
+    });
+
+    test('resolved 不在通知白名单（家务信号不发系统通知不计未读）', () {
+      expect(kNotifiableTypes.contains('resolved'), isFalse);
+      expect(kKnownEventTypes.contains('resolved'), isFalse);
     });
 
     test('差分：解除后再次出现（0→1）重新发事件（新一轮权限）', () {
@@ -429,17 +487,400 @@ void main() {
           '"session":{"sessionId":"sess_b","title":"hi","phase":"completedSuccess",'
           '"sessionEnded":true,"pendingInteractionSummary":{"permissionCount":0,"userInputCount":0}}}]}}}';
       final events = differ.apply(SessionStateExtractor.parse(frameDone));
-      expect(events, hasLength(1));
-      expect(events.first.type, 'completed');
-      expect(events.first.sessionTitle, 'hi');
+      expect(events, hasLength(2));
+      expect(events.first.type, 'resolved');
+      expect(events.last.type, 'completed');
+      expect(events.last.sessionTitle, 'hi');
 
       final fresh = StateDiffer();
       expect(fresh.apply(SessionStateExtractor.parse(frameDone)), isEmpty);
     });
 
+    test('提取：session.removed delta 只带裸 sessionId', () {
+      expect(SessionStateExtractor.parseRemoved(frameRemovedB), ['sess_b']);
+      expect(SessionStateExtractor.parseRemoved(framePermAppears), isEmpty);
+      expect(SessionStateExtractor.parseRemoved('{"foo":1}'), isEmpty);
+    });
+
+    test('差分：会话被显式移除且带走未清待办 → 补发 resolved（通知撤回）', () {
+      final differ = StateDiffer();
+      differ.apply(SessionStateExtractor.parse(framePermAppears));
+      final events = differ.apply(
+        SessionStateExtractor.parse(framePlainC),
+        removed: SessionStateExtractor.parseRemoved(frameRemovedB),
+      );
+      expect(events, hasLength(1));
+      expect(events.first.type, 'resolved');
+      expect(events.first.taskId, 'sess_b');
+    });
+
+    test('差分：无待办的会话移除不发 resolved', () {
+      final differ = StateDiffer();
+      differ.apply(SessionStateExtractor.parse(frameBaseline));
+      expect(
+        differ.apply(
+          const [],
+          removed: SessionStateExtractor.parseRemoved(frameRemovedB),
+        ),
+        isEmpty,
+      );
+    });
+
+    test('差分：移除未知 sessionId 是 no-op', () {
+      final differ = StateDiffer();
+      differ.apply(SessionStateExtractor.parse(framePermAppears));
+      expect(
+        differ.apply(const [], removed: ['sess_unknown']),
+        isEmpty,
+      );
+    });
+
+    test('差分：非 sessions-index 帧（空提取）不清空 _prev', () {
+      final differ = StateDiffer();
+      differ.apply(SessionStateExtractor.parse(framePermAppears));
+      expect(differ.apply(SessionStateExtractor.parse('{"foo":1}')), isEmpty);
+      expect(
+        differ.apply(SessionStateExtractor.parse(framePermRepeat)),
+        isEmpty,
+      );
+    });
+
+    test('差分：移除后会话重现 → 按首见处理（重新发待审事件）', () {
+      final differ = StateDiffer();
+      differ.apply(SessionStateExtractor.parse(framePermAppears));
+      differ.apply(
+        const [],
+        removed: SessionStateExtractor.parseRemoved(frameRemovedB),
+      );
+      final again = differ.apply(
+        SessionStateExtractor.parse(framePermAppears),
+      );
+      expect(again, hasLength(1));
+      expect(again.first.type, 'permission_request');
+    });
+
     test('非 JSON 与无关 JSON 不产出状态', () {
       expect(SessionStateExtractor.parse('data: {...}'), isEmpty);
       expect(SessionStateExtractor.parse('{"foo":1}'), isEmpty);
+    });
+
+    test('提取：session.workspaceId 的 basename 进 workspace（Windows 路径）', () {
+      const frameWs =
+          '{"wireVersion":3,"frame":{"payload":{"deltas":[{"op":"session.upserted",'
+          '"session":{"sessionId":"sess_b","workspaceId":"W:\\\\ws\\\\demo",'
+          '"title":"hi","phase":"running","sessionEnded":false,'
+          '"pendingInteractionSummary":{"permissionCount":0,"userInputCount":0},'
+          '"lastActivityAt":1}}]}}}';
+      final states = SessionStateExtractor.parse(frameWs);
+      expect(states, hasLength(1));
+      expect(states.first.workspace, 'demo');
+    });
+
+    test('提取：缺 workspaceId 的会话 → workspace null（防御；schema 里必填）', () {
+      const frameNoWs =
+          '{"wireVersion":3,"frame":{"payload":{"deltas":[{"op":"session.upserted",'
+          '"session":{"sessionId":"sess_b","title":"hi","phase":"running",'
+          '"sessionEnded":false,"pendingInteractionSummary":{"permissionCount":0,"userInputCount":0}}}]}}}';
+      final states = SessionStateExtractor.parse(frameNoWs);
+      expect(states, hasLength(1));
+      expect(states.first.workspace, isNull);
+    });
+
+    test('提取：一帧内两个会话不同 workspaceId → 各归各的 basename（逐对象归属）', () {
+      const frameTwoWs =
+          '{"wireVersion":3,"frame":{"payload":{"kind":"deltas","deltas":['
+          '{"op":"session.upserted","session":{"sessionId":"sess_a1",'
+          '"workspaceId":"D:\\\\a\\\\alpha","title":"a","phase":"running",'
+          '"sessionEnded":false,"pendingInteractionSummary":{"permissionCount":0,"userInputCount":0}}},'
+          '{"op":"session.upserted","session":{"sessionId":"sess_b1",'
+          '"workspaceId":"D:\\\\b\\\\beta","title":"b","phase":"running",'
+          '"sessionEnded":false,"pendingInteractionSummary":{"permissionCount":0,"userInputCount":0}}}'
+          ']}}}';
+      final states = SessionStateExtractor.parse(frameTwoWs);
+      expect(states, hasLength(2));
+      final byId = {for (final s in states) s.sessionId: s};
+      expect(byId['sess_a1']?.workspace, 'alpha');
+      expect(byId['sess_b1']?.workspace, 'beta');
+    });
+
+    test('workspaceBasenameOf：取最后一个 / 或 \\\\ 之后的末段并 trim，取不到则 null', () {
+      expect(
+        SessionStateExtractor.workspaceBasenameOf('W:\\ws\\demo'),
+        'demo',
+      );
+      expect(
+        SessionStateExtractor.workspaceBasenameOf('/home/ubuntu/proj'),
+        'proj',
+      );
+      expect(SessionStateExtractor.workspaceBasenameOf('edai-web'), 'edai-web');
+      expect(
+        SessionStateExtractor.workspaceBasenameOf('  D:\\x\\app  '),
+        'app',
+      );
+      expect(SessionStateExtractor.workspaceBasenameOf('D:\\tmp\\app\\'), isNull);
+      expect(SessionStateExtractor.workspaceBasenameOf('   '), isNull);
+      expect(SessionStateExtractor.workspaceBasenameOf(''), isNull);
+      expect(SessionStateExtractor.workspaceBasenameOf(null), isNull);
+    });
+
+    test('提取：lastActivityAt 时间戳进 SessionState（面板相对排序用）', () {
+      const frameLaa =
+          '{"wireVersion":3,"frame":{"payload":{"deltas":[{"op":"session.upserted",'
+          '"session":{"sessionId":"sess_b","title":"hi","phase":"running",'
+          '"sessionEnded":false,"pendingInteractionSummary":{"permissionCount":0,"userInputCount":0},'
+          '"lastActivityAt":1712345678}}]}}}';
+      final states = SessionStateExtractor.parse(frameLaa);
+      expect(states, hasLength(1));
+      expect(states.first.lastActivityAt, 1712345678);
+    });
+
+    test('提取：无 lastActivityAt 键的会话 → null（视为最旧）', () {
+      const frameNoLaa =
+          '{"wireVersion":3,"frame":{"payload":{"deltas":[{"op":"session.upserted",'
+          '"session":{"sessionId":"sess_b","title":"hi","phase":"running",'
+          '"sessionEnded":false,"pendingInteractionSummary":{"permissionCount":0,"userInputCount":0}}}]}}}';
+      final states = SessionStateExtractor.parse(frameNoLaa);
+      expect(states, hasLength(1));
+      expect(states.first.lastActivityAt, isNull);
+    });
+  });
+
+  const frameTaskIndex =
+      '{"topic":"controller/tasks-index","subscriptionId":"sub-1","logEpoch":"e1",'
+      '"fromSeq":13475,"toSeq":13476,"sentAt":1788195468226,'
+      '"payload":{"kind":"deltas","deltas":[{"op":"task.upserted","task":{'
+      '"address":{"workspacePath":"W:\\\\ws\\\\demo","taskId":"sess_c13ed748-1"},'
+      '"meta":{"taskId":"sess_c13ed748-1","traceId":"tr-1",'
+      '"title":"思考常用且實用的擴充功能","titleOverridden":false,'
+      '"workspacePath":"W:\\\\ws\\\\demo","createdAt":1788166101996,'
+      '"updatedAt":1788196159419,"mode":"build","model":"…","thoughtLevel":"max",'
+      '"provider":"glm","status":"running","target":null},'
+      '"membership":{"pinned":false,"archived":false,"active":true},'
+      '"sourceAvailability":"online","liveStatus":"running",'
+      '"activity":{"phase":"running","lastActivityAt":1788196159419,"hasBackgroundWork":false}}}]}}';
+
+  group('TaskIndexExtractor（controller/tasks-index，跨项目全量）', () {
+    test('解析完整帧：id/title/workspace/lastActivityAt/phase/pinned 全映射', () {
+      final states = TaskIndexExtractor.parse(frameTaskIndex);
+      expect(states, hasLength(1));
+      final s = states.single;
+      expect(s.sessionId, 'sess_c13ed748-1');
+      expect(s.title, '思考常用且實用的擴充功能');
+      expect(s.workspace, 'demo');
+      expect(s.lastActivityAt, 1788196159419);
+      expect(s.phase, 'running');
+      expect(s.pinned, isFalse);
+      expect(s.permissionCount, 0);
+      expect(s.userInputCount, 0);
+      expect(s.interactionKind, isNull);
+    });
+
+    test('membership.pinned=true → pinned（「已置顶」数据源）', () {
+      const framePinned =
+          '{"payload":{"deltas":[{"op":"task.upserted","task":{'
+          '"address":{"workspacePath":"D:\\\\a\\\\alpha","taskId":"sess_p1"},'
+          '"meta":{"taskId":"sess_p1","title":"置顶的","status":"running"},'
+          '"membership":{"pinned":true,"archived":false,"active":true},'
+          '"activity":{"phase":"running","lastActivityAt":5}}}]}}';
+      final states = TaskIndexExtractor.parse(framePinned);
+      expect(states, hasLength(1));
+      expect(states.single.pinned, isTrue);
+    });
+
+    test('membership.archived=true → 不 upsert（评审 r6：面板幽灵行）', () {
+      const frameArchived =
+          '{"payload":{"deltas":[{"op":"task.upserted","task":{'
+          '"address":{"taskId":"sess_arc1"},'
+          '"meta":{"taskId":"sess_arc1","title":"归档的","status":"running",'
+          '"updatedAt":7},'
+          '"membership":{"pinned":false,"archived":true,"active":false}}}]}}';
+      expect(TaskIndexExtractor.parse(frameArchived), isEmpty);
+    });
+
+    test('parseArchived：archived 任务的 id 以移除信号吐出（摘既有条目）', () {
+      const frameArchived =
+          '{"payload":{"deltas":['
+          '{"op":"task.upserted","task":{'
+          '"address":{"taskId":"sess_arc1"},'
+          '"membership":{"pinned":false,"archived":true}}},'
+          '{"op":"task.upserted","task":{'
+          '"address":{"taskId":"sess_ok1"},'
+          '"membership":{"pinned":false,"archived":false}}}]}}';
+      expect(TaskIndexExtractor.parseArchived(frameArchived), ['sess_arc1']);
+      expect(TaskIndexExtractor.parseArchived(frameTaskIndex), isEmpty);
+      expect(TaskIndexExtractor.parseArchived('{"foo":1}'), isEmpty);
+      expect(TaskIndexExtractor.parseArchived('not json'), isEmpty);
+    });
+
+    test('parseRemoved：task.removed op（schema 判别联合）→ address.taskId', () {
+      const frameRemoved =
+          '{"payload":{"deltas":['
+          '{"op":"task.removed","address":{"taskId":"sess_gone1",'
+          '"workspacePath":"D:\\\\a\\\\alpha","remoteSessionId":"local"}},'
+          '{"op":"task.upserted","task":{'
+          '"address":{"taskId":"sess_ok1"},'
+          '"membership":{"pinned":false,"archived":false}}}]}}';
+      expect(TaskIndexExtractor.parseRemoved(frameRemoved), ['sess_gone1']);
+      expect(TaskIndexExtractor.parseRemoved(frameTaskIndex), isEmpty);
+      expect(TaskIndexExtractor.parseRemoved('{"foo":1}'), isEmpty);
+      expect(TaskIndexExtractor.parseRemoved('not json'), isEmpty);
+    });
+
+    test('meta.createdAt 映射（比较器主键 + 合并源）', () {
+      final states = TaskIndexExtractor.parse(frameTaskIndex);
+      expect(states.single.createdAt, 1788166101996);
+    });
+
+    test('parseSnapshot：kind:snapshot 的裸 task 数组全解析（跨 workspace 全量回放）', () {
+      const frameSnapshot =
+          '{"topic":"controller/tasks-index","subscriptionId":"sub-9",'
+          '"payload":{"kind":"snapshot","snapshot":{'
+          '"protocolVersion":1,"logEpoch":"e1","tasks":['
+          '{"address":{"workspacePath":"D:\\\\proj\\\\alpha","taskId":"sess_ws_a"},'
+          '"meta":{"taskId":"sess_ws_a","title":"跨项目A","status":"running",'
+          '"createdAt":10,"updatedAt":11},'
+          '"membership":{"pinned":false,"archived":false,"active":true}},'
+          '{"address":{"workspacePath":"E:\\\\beta","taskId":"sess_ws_b"},'
+          '"meta":{"taskId":"sess_ws_b","title":"跨项目B","status":"completed",'
+          '"createdAt":20,"updatedAt":22},'
+          '"membership":{"pinned":true,"archived":false,"active":true}},'
+          '{"address":{"workspacePath":"E:\\\\beta","taskId":"sess_ws_arc"},'
+          '"meta":{"taskId":"sess_ws_arc","title":"归档的不进面板",'
+          '"createdAt":30,"updatedAt":31},'
+          '"membership":{"pinned":false,"archived":true,"active":false}}]}}}';
+      final snap = TaskIndexExtractor.parseSnapshot(frameSnapshot);
+      expect(snap, isNotNull);
+      expect(snap, hasLength(2));
+      final a = snap![0];
+      expect(a.sessionId, 'sess_ws_a');
+      expect(a.title, '跨项目A');
+      expect(a.workspace, 'alpha');
+      expect(a.phase, 'running');
+      expect(a.createdAt, 10);
+      final b = snap[1];
+      expect(b.sessionId, 'sess_ws_b');
+      expect(b.workspace, 'beta');
+      expect(b.pinned, isTrue);
+    });
+
+    test('parseSnapshot：delta 帧与垃圾输入 → null（非 snapshot 不得误判）', () {
+      expect(TaskIndexExtractor.parseSnapshot(frameTaskIndex), isNull);
+      expect(TaskIndexExtractor.parseSnapshot('{"foo":1}'), isNull);
+      expect(TaskIndexExtractor.parseSnapshot('not json'), isNull);
+    });
+
+    test('parseResultTasks：bootstrap/workspace-list RPC 回应的扁平 task 视图（每次连接必到）', () {
+      const frameBootstrap =
+          '{"type":"data","payload":{"requestId":"bootstrap-6fe039fb",'
+          '"result":{"mobileViewState":{"activeTaskId":"sess_cur",'
+          '"activeWorkspaceKey":"W:\\\\ws\\\\demo"},'
+          '"tasks":['
+          '{"createdAt":1788231444628,"displayStatus":"running","provider":"glm",'
+          '"taskId":"sess_cur","title":"代码审查","updatedAt":1788246960324,'
+          '"workspaceKind":"local","workspaceLabel":"demo",'
+          '"workspacePath":"W:\\\\ws\\\\demo"},'
+          '{"createdAt":1788166101996,"displayStatus":"completed","provider":"glm",'
+          '"taskId":"sess_other","title":"跨项目任务","updatedAt":1788226114094,'
+          '"workspaceKind":"local","workspaceLabel":"ai-meeting",'
+          '"workspacePath":"D:\\\\work\\\\ai-meeting"}]}}}';
+      final tasks = TaskIndexExtractor.parseResultTasks(frameBootstrap);
+      expect(tasks, isNotNull);
+      expect(tasks, hasLength(2));
+      final cur = tasks![0];
+      expect(cur.sessionId, 'sess_cur');
+      expect(cur.phase, 'running');
+      expect(cur.lastActivityAt, 1788246960324);
+      expect(cur.createdAt, 1788231444628);
+      expect(cur.workspace, 'demo');
+      final other = tasks[1];
+      expect(other.sessionId, 'sess_other');
+      expect(other.phase, 'completedSuccess');
+      expect(other.workspace, 'ai-meeting');
+    });
+
+    test('parseResultTasks：无 result.tasks 的消息 → null', () {
+      expect(TaskIndexExtractor.parseResultTasks(frameTaskIndex), isNull);
+      expect(TaskIndexExtractor.parseResultTasks('{"foo":1}'), isNull);
+      expect(TaskIndexExtractor.parseResultTasks('not json'), isNull);
+      expect(
+        TaskIndexExtractor.parseResultTasks('{"payload":{"result":{"x":1}}}'),
+        isNull,
+      );
+    });
+
+    test('isBootstrapResult：requestId 前缀判定（评审 r10 抽纯函数）', () {
+      const frameBootstrap =
+          '{"payload":{"requestId":"bootstrap-e6b0b12f-9989","result":{"tasks":[]}}}';
+      const frameWorkspaceList =
+          '{"payload":{"requestId":"workspace-list-9cf57a9a","result":{"tasks":[]}}}';
+      expect(
+        TaskIndexExtractor.isBootstrapResult(jsonDecode(frameBootstrap)),
+        isTrue,
+      );
+      expect(
+        TaskIndexExtractor.isBootstrapResult(jsonDecode(frameWorkspaceList)),
+        isFalse,
+      );
+      expect(TaskIndexExtractor.isBootstrapResult(null), isFalse);
+      expect(TaskIndexExtractor.isBootstrapResult(jsonDecode('{"x":1}')),
+          isFalse);
+      expect(
+        TaskIndexExtractor.isBootstrapResult(
+          jsonDecode('{"payload":{"result":{"tasks":[]}}}'),
+        ),
+        isFalse,
+      );
+    });
+
+    test('activity 缺失 → phase 走 meta.status 映射，时间走 meta.updatedAt', () {
+      const frameNoActivity =
+          '{"payload":{"deltas":[{"op":"task.upserted","task":{'
+          '"address":{"taskId":"sess_d1"},'
+          '"meta":{"taskId":"sess_d1","title":"完成的","status":"completed",'
+          '"updatedAt":1234567890123}}}]}}';
+      final states = TaskIndexExtractor.parse(frameNoActivity);
+      expect(states, hasLength(1));
+      expect(states.single.phase, 'completedSuccess');
+      expect(states.single.lastActivityAt, 1234567890123);
+      expect(states.single.workspace, isNull);
+    });
+
+    test('两流正交：tasks-index 帧不喂 SessionStateExtractor，反之亦然', () {
+      expect(SessionStateExtractor.parse(frameTaskIndex), isEmpty);
+      expect(SessionStateExtractor.parseRemoved(frameTaskIndex), isEmpty);
+      expect(TaskIndexExtractor.parse(frameBaseline), isEmpty);
+    });
+
+    test('无 task.upserted 的消息与非 JSON → 空', () {
+      expect(TaskIndexExtractor.parse('{"foo":1}'), isEmpty);
+      expect(TaskIndexExtractor.parse('not json'), isEmpty);
+    });
+  });
+
+  group('MobileViewStateSync（mobile-view-state POST 请求体）', () {
+
+    test('带 taskId（打开任务）→ valid + taskId', () {
+      const body =
+          '{"activeWorkspaceKey":"W:\\\\ws\\\\demo","activeTaskId":"sess_abc",'
+          '"updatedAt":1756632000000}';
+      final r = MobileViewStateSync.parse(body);
+      expect(r.valid, isTrue);
+      expect(r.taskId, 'sess_abc');
+    });
+
+    test('不带 taskId（回到任务列表）→ valid + null（清锚点信号）', () {
+      const body =
+          '{"activeWorkspaceKey":"W:\\\\ws\\\\demo","updatedAt":1756632000001}';
+      final r = MobileViewStateSync.parse(body);
+      expect(r.valid, isTrue);
+      expect(r.taskId, isNull);
+    });
+
+    test('非 JSON / 非对象 / 缺 activeWorkspaceKey → 无信号（不清锚）', () {
+      expect(MobileViewStateSync.parse('not json').valid, isFalse);
+      expect(MobileViewStateSync.parse('[]').valid, isFalse);
+      expect(MobileViewStateSync.parse('{"foo":1}').valid, isFalse);
+      expect(MobileViewStateSync.parse('{"activeTaskId":"x"}').valid, isFalse);
     });
   });
 
@@ -528,6 +969,27 @@ void main() {
     test('无关消息返回 null', () {
       expect(ActiveSessionExtractor.parse('{"foo":1}'), isNull);
       expect(ActiveSessionExtractor.parse('not json'), isNull);
+    });
+
+    test('conversation/<sessionId> topic 即正在查看的会话', () {
+      const body =
+          '{"topic":"conversation/sess_c13ed748-1","subscriptionId":"sub-1",'
+          '"fromSeq":9,"payload":{}}';
+      expect(ActiveSessionExtractor.parse(body), 'sess_c13ed748-1');
+    });
+
+    test('同一帧内 conversation 胜过列表选择镜像（mobileViewState 老值）', () {
+      const body =
+          '{"topic":"conversation/sess_new","payload":{"result":'
+          '{"mobileViewState":{"activeTaskId":"sess_old"}}}}';
+      expect(ActiveSessionExtractor.parse(body), 'sess_new');
+    });
+
+    test('conversation/ 空 id 不作信号，回落其他信号', () {
+      const body =
+          '{"topic":"conversation/","payload":{"bridge":'
+          '{"initialTaskId":"sess_fb"}}}';
+      expect(ActiveSessionExtractor.parse(body), 'sess_fb');
     });
   });
 }

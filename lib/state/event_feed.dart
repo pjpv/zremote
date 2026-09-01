@@ -28,6 +28,15 @@ class EventFeedNotifier extends Notifier<Map<String, DeviceFeed>> {
   Map<String, DeviceFeed> build() => const {};
 
   void ingest(String deviceId, ObservedEvent event) {
+    if (event.type == 'resolved') {
+      final current = state[deviceId];
+      if (current == null) return;
+      state = {
+        ...state,
+        deviceId: current.copyWith(permPending: false),
+      };
+      return;
+    }
     if (!kNotifiableTypes.contains(event.type)) return;
     final current = state[deviceId] ?? const DeviceFeed();
     state = {
