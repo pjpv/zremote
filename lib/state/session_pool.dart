@@ -43,6 +43,54 @@ class DeviceListNotifier extends Notifier<List<RemoteDevice>> {
     await DeviceStore.instance.remove(id);
     state = state.where((d) => d.id != id).toList();
   }
+
+  Future<void> reorder(int oldIndex, int newIndex) async {
+    if (oldIndex < 0 || oldIndex >= state.length) return;
+    if (oldIndex < newIndex) newIndex -= 1;
+    if (newIndex < 0 || newIndex >= state.length) return;
+    if (oldIndex == newIndex) return;
+
+    final active = ref.read(activeTabProvider);
+    final activeId = active < state.length ? state[active].id : null;
+
+    final reordered = [...state]..removeAt(oldIndex);
+    final moved = state[oldIndex];
+    reordered.insert(newIndex, moved);
+
+    await DeviceStore.instance
+        .saveOrder([for (final d in reordered) d.id]);
+    state = reordered;
+
+    if (activeId != null) {
+      final i = reordered.indexWhere((d) => d.id == activeId);
+      if (i >= 0 && ref.read(activeTabProvider) != i) {
+        ref.read(activeTabProvider.notifier).set(i);
+      }
+    }
+  }
+
+  Future<void> replaceLink(String id, RemoteDevice parsed) async {
+    RemoteDevice? target;
+    for (final d in state) {
+      if (d.id == id) {
+        target = d;
+        break;
+      }
+    }
+    if (target == null) return;
+    final updated = RemoteDevice(
+      id: target.id,
+      baseUrl: parsed.baseUrl,
+      params: parsed.params,
+      label: target.label.isNotEmpty ? target.label : parsed.label,
+      createdAt: target.createdAt,
+    );
+    await DeviceStore.instance.update(updated);
+    state = [
+      for (final d in state)
+        if (d.id == id) updated else d,
+    ];
+  }
 }
 
 final deviceListProvider =

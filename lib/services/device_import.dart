@@ -10,3 +10,12 @@ RemoteDevice? findDuplicateBySid(
   }
   return null;
 }
+
+RemoteDevice? findDuplicateBySidExcept(
+  List<RemoteDevice> existing,
+  RemoteDevice candidate,
+  String selfId,
+) => findDuplicateBySid(
+  [for (final d in existing) if (d.id != selfId) d],
+  candidate,
+);

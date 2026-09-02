@@ -57,6 +57,18 @@ class _SessionViewState extends ConsumerState<SessionView> {
     _activeSessionNotifier ??= ref.read(activeSessionProvider.notifier);
   }
 
+  @override
+  void didUpdateWidget(covariant SessionView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final oldDev = oldWidget.device;
+    final newDev = widget.device;
+    if (oldDev.id == newDev.id &&
+        (oldDev.baseUrl != newDev.baseUrl ||
+            !mapEquals(oldDev.params, newDev.params))) {
+      _manualReload();
+    }
+  }
+
   void _report(SessionStatus status) =>
       _statusNotifier?.report(widget.device.id, status);
 

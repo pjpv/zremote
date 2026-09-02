@@ -68,7 +68,23 @@ class ManagePage extends ConsumerWidget {
               _EmptyHint(onScan: () => _openScanner(context, ref))
             else ...[
               SectionLabel(l10n.devicesCount(devices.length)),
-              ...devices.map((d) => _DeviceCard(device: d)),
+              ReorderableListView(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                buildDefaultDragHandles: false,
+                onReorder: (oldIndex, newIndex) => ref
+                    .read(deviceListProvider.notifier)
+                    .reorder(oldIndex, newIndex),
+                children: [
+                  for (var i = 0; i < devices.length; i++)
+                    _DeviceCard(
+                      key: ValueKey(devices[i].id),
+                      device: devices[i],
+                      index: i,
+                    ),
+                ],
+              ),
             ],
             const SizedBox(height: 12),
             const _SettingsEntry(),
@@ -165,9 +181,16 @@ class ManagePage extends ConsumerWidget {
 }
 
 class _PasteDialog extends StatefulWidget {
-  const _PasteDialog({required this.l10n});
+  const _PasteDialog({
+    required this.l10n,
+    this.title,
+    this.actionLabel,
+  });
 
   final AppLocalizations l10n;
+
+  final String? title;
+  final String? actionLabel;
 
   @override
   State<_PasteDialog> createState() => _PasteDialogState();
@@ -185,7 +208,7 @@ class _PasteDialogState extends State<_PasteDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.l10n.pasteDialogTitle),
+      title: Text(widget.title ?? widget.l10n.pasteDialogTitle),
       content: TextField(
         controller: _controller,
         maxLines: 3,
@@ -202,11 +225,40 @@ class _PasteDialogState extends State<_PasteDialog> {
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context, _controller.text),
-          child: Text(widget.l10n.importButton),
+          child: Text(widget.actionLabel ?? widget.l10n.importButton),
         ),
       ],
     );
   }
+}
+
+Future<void> _applyReplaceLink(
+  BuildContext context,
+  WidgetRef ref,
+  RemoteDevice target,
+  RemoteDevice parsed,
+) async {
+  final l10n = AppLocalizations.of(context)!;
+  final dup = findDuplicateBySidExcept(
+    ref.read(deviceListProvider),
+    parsed,
+    target.id,
+  );
+  if (dup != null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.replaceDuplicate(dup.displayName(l10n)))),
+    );
+    return;
+  }
+  await ref.read(deviceListProvider.notifier).replaceLink(target.id, parsed);
+  if (!context.mounted) return;
+  ScaffoldMessenger.of(
+    context,
+  ).showSnackBar(SnackBar(content: Text(l10n.replaceDone)));
+  final index = ref
+      .read(deviceListProvider)
+      .indexWhere((d) => d.id == target.id);
+  if (index >= 0) ref.read(activeTabProvider.notifier).set(index);
 }
 
 class _RenameDialog extends StatefulWidget {
@@ -302,9 +354,11 @@ class _EmptyHint extends StatelessWidget {
 }
 
 class _DeviceCard extends ConsumerWidget {
-  const _DeviceCard({required this.device});
+  const _DeviceCard({super.key, required this.device, required this.index});
 
   final RemoteDevice device;
+
+  final int index;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -390,6 +444,8 @@ class _DeviceCard extends ConsumerWidget {
                       ref.read(activeTabProvider.notifier).set(index);
                     case 'rename':
                       await _rename(context, ref);
+                    case 'replace':
+                      await _replace(context, ref);
                     case 'delete':
                       await _confirmDelete(context, ref);
                   }
@@ -400,8 +456,19 @@ class _DeviceCard extends ConsumerWidget {
                     child: Text(l10n.menuOpenSession),
                   ),
                   PopupMenuItem(value: 'rename', child: Text(l10n.menuRename)),
+                  PopupMenuItem(
+                    value: 'replace',
+                    child: Text(l10n.menuReplace),
+                  ),
                   PopupMenuItem(value: 'delete', child: Text(l10n.menuDelete)),
                 ],
+              ),
+              ReorderableDragStartListener(
+                index: index,
+                child: const Padding(
+                  padding: EdgeInsets.fromLTRB(2, 12, 10, 12),
+                  child: Icon(Icons.drag_indicator, size: 20, color: ZT.textLo),
+                ),
               ),
             ],
           ),
@@ -422,6 +489,100 @@ class _DeviceCard extends ConsumerWidget {
     final ok = name != null && name.trim().isNotEmpty;
     if (ok && context.mounted) {
       await ref.read(deviceListProvider.notifier).rename(device.id, name);
+    }
+  }
+
+  Future<void> _replace(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: ZT.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 10),
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: ZT.hairline,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.replaceSheetTitle,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: ZT.textHi,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    l10n.replaceSheetBody,
+                    style: const TextStyle(fontSize: 13, color: ZT.textLo),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.qr_code_scanner, color: ZT.accent),
+              title: Text(l10n.replaceScan),
+              onTap: () => Navigator.pop(sheetContext, 'scan'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.content_paste, color: ZT.accent),
+              title: Text(l10n.replacePaste),
+              onTap: () => Navigator.pop(sheetContext, 'paste'),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (action == null || !context.mounted) return;
+    switch (action) {
+      case 'scan':
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            fullscreenDialog: true,
+            builder: (_) => ScannerPage(replaceOf: device),
+          ),
+        );
+      case 'paste':
+        final text = await showDialog<String>(
+          context: context,
+          builder: (dialogContext) => _PasteDialog(
+            l10n: l10n,
+            title: l10n.replacePasteDialogTitle,
+            actionLabel: l10n.commonSave,
+          ),
+        );
+        if (text == null || !context.mounted) return;
+        final parsed = LinkBuilder.parse(text);
+        if (parsed == null) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(AppLocalizations.of(context)!.importFailed),
+              ),
+            );
+          }
+          return;
+        }
+        await _applyReplaceLink(context, ref, device, parsed);
     }
   }
 
@@ -536,7 +697,9 @@ class _SettingsEntryState extends ConsumerState<_SettingsEntry> {
 }
 
 class ScannerPage extends ConsumerStatefulWidget {
-  const ScannerPage({super.key});
+  const ScannerPage({super.key, this.replaceOf});
+
+  final RemoteDevice? replaceOf;
 
   @override
   ConsumerState<ScannerPage> createState() => _ScannerPageState();
@@ -657,7 +820,9 @@ class _ScannerPageState extends ConsumerState<ScannerPage>
                   borderRadius: BorderRadius.circular(22),
                 ),
                 child: Text(
-                  AppLocalizations.of(context)!.scannerHint,
+                  widget.replaceOf == null
+                      ? AppLocalizations.of(context)!.scannerHint
+                      : AppLocalizations.of(context)!.scannerReplaceHint,
                   style: const TextStyle(fontSize: 13, color: Colors.white70),
                 ),
               ),
@@ -686,6 +851,38 @@ class _ScannerPageState extends ConsumerState<ScannerPage>
           SnackBar(content: Text(AppLocalizations.of(context)!.invalidQr)),
         );
       }
+      return;
+    }
+
+    final replaceOf = widget.replaceOf;
+    if (replaceOf != null) {
+      _navigating = true;
+      final l10n = AppLocalizations.of(context)!;
+      final dup = findDuplicateBySidExcept(
+        ref.read(deviceListProvider),
+        device,
+        replaceOf.id,
+      );
+      if (dup != null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.replaceDuplicate(dup.displayName(l10n)))),
+        );
+        Navigator.of(context).pop();
+        return;
+      }
+      await ref
+          .read(deviceListProvider.notifier)
+          .replaceLink(replaceOf.id, device);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.replaceDone)));
+      Navigator.of(context).pop();
+      final index = ref
+          .read(deviceListProvider)
+          .indexWhere((d) => d.id == replaceOf.id);
+      if (index >= 0) ref.read(activeTabProvider.notifier).set(index);
       return;
     }
 

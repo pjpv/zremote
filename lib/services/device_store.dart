@@ -57,6 +57,15 @@ class DeviceStore {
     await _secure.write(key: _indexKey, value: jsonEncode(ids));
   }
 
+  Future<void> saveOrder(List<String> ids) async {
+    final current = await _readIndex();
+    if (current.length != ids.length) return;
+    final idSet = ids.toSet();
+    if (idSet.length != ids.length) return;
+    if (!current.toSet().containsAll(idSet)) return;
+    await _secure.write(key: _indexKey, value: jsonEncode(ids));
+  }
+
   Future<List<String>> _readIndex() async {
     final raw = await _secure.read(key: _indexKey);
     if (raw == null) return [];

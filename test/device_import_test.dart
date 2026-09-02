@@ -32,4 +32,18 @@ void main() {
       expect(findDuplicateBySid([], _device('AAA')), isNull);
     });
   });
+
+  group('findDuplicateBySidExcept（更换链接流程）', () {
+    test('撞自己的 sid → 放行（hash 轮换属合法更换）', () {
+      final existing = [_device('AAA'), _device('BBB')];
+      final hit = findDuplicateBySidExcept(existing, _device('AAA'), 'id-AAA');
+      expect(hit, isNull);
+    });
+
+    test('撞别的设备的 sid → 命中该设备（重复接入拦截）', () {
+      final existing = [_device('AAA'), _device('BBB')];
+      final hit = findDuplicateBySidExcept(existing, _device('BBB'), 'id-AAA');
+      expect(hit, same(existing.last));
+    });
+  });
 }
