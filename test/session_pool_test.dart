@@ -113,4 +113,23 @@ void main() {
       expect(await DeviceStore.instance.lastDeviceId(), 'a');
     });
   });
+
+  group('BiometricNotifier 冷启动初始注入（main 预载）', () {
+    test('initial=true 首读即持久值——无「先不锁再补锁」窗口', () async {
+      SharedPreferences.setMockInitialValues({
+        'zremote.biometricEnabled': true,
+      });
+      final c = ProviderContainer(
+        overrides: [
+          biometricProvider.overrideWith(
+            () => BiometricNotifier(initial: true),
+          ),
+        ],
+      );
+      addTearDown(c.dispose);
+      expect(c.read(biometricProvider), isTrue);
+      await Future<void>.delayed(Duration.zero);
+      expect(c.read(biometricProvider), isTrue);
+    });
+  });
 }

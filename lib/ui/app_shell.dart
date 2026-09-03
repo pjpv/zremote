@@ -22,6 +22,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   void initState() {
     super.initState();
     NotificationTap.bind((deviceId) => _jumpTo(deviceId));
+    NotifierService.instance.setLockScreenRedact(ref.read(biometricProvider));
   }
 
   @override
@@ -52,6 +53,11 @@ class _AppShellState extends ConsumerState<AppShell> {
     final active = ref.watch(activeTabProvider);
 
     ref.watch(keepAliveControllerProvider);
+
+    ref.listen<bool>(
+      biometricProvider,
+      (_, next) => NotifierService.instance.setLockScreenRedact(next),
+    );
 
     ref.listen(deviceListProvider, (prev, next) {
       final count = next.length + 1;

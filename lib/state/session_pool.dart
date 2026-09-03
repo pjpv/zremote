@@ -143,10 +143,14 @@ final activeTabProvider = NotifierProvider<ActiveTabNotifier, int>(
 );
 
 class BiometricNotifier extends Notifier<bool> {
+  BiometricNotifier({this.initial = false});
+
+  final bool initial;
+
   @override
   bool build() {
     _load();
-    return false;
+    return initial;
   }
 
   Future<void> _load() async {

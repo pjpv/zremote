@@ -61,7 +61,7 @@ Finder get visibleSecret => find.text('SECRET').hitTestable();
 Finder get visibleLock => find.text('已锁定').hitTestable();
 
 void main() {
-  testWidgets('宽限期后自动上锁并验证，通过则进入内容', (tester) async {
+  testWidgets('冷启动首帧后自动验证，通过则进入内容', (tester) async {
     var calls = 0;
     await pumpGate(
       tester,

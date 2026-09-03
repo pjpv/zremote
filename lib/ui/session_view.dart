@@ -89,19 +89,6 @@ class _SessionViewState extends ConsumerState<SessionView> {
 
   void _onBridgeMessage(String body) {
     if (!mounted) return;
-    if (kDebugMode) {
-      try {
-        final hit = body.contains('tasks-index');
-        if (body.contains('snapshot') || body.length > 20000) {
-          final snapN = TaskIndexExtractor.parseSnapshotRoot(jsonDecode(body));
-          debugPrint('[zr-big] len=${body.length} tasks-index=$hit snap=${snapN?.length}');
-        } else {
-          debugPrint('[zr-frame] len=${body.length} tasks-index=$hit');
-        }
-      } catch (e) {
-        debugPrint('[zr-frame] decode-fail len=${body.length}');
-      }
-    }
     dynamic root;
     try {
       root = jsonDecode(body);
@@ -127,12 +114,6 @@ class _SessionViewState extends ConsumerState<SessionView> {
     final snapshotTasks = TaskIndexExtractor.parseSnapshotRoot(root);
     if (snapshotTasks != null) {
       _sessionIndexNotifier?.replaceTasks(widget.device.id, snapshotTasks);
-      if (kDebugMode) {
-        debugPrint(
-          '[zr-snap] applied=${snapshotTasks.length} '
-          'workspaces=${snapshotTasks.map((t) => t.workspace).toSet().length}',
-        );
-      }
     } else {
       final taskEntries = TaskIndexExtractor.parseRoot(root);
       _sessionIndexNotifier?.upsertTasks(widget.device.id, taskEntries);
@@ -147,13 +128,6 @@ class _SessionViewState extends ConsumerState<SessionView> {
         );
       } else {
         _sessionIndexNotifier?.upsertTasks(widget.device.id, resultTasks);
-      }
-      if (kDebugMode) {
-        debugPrint(
-          '[zr-result] ${TaskIndexExtractor.isBootstrapResult(root) ? 'bootstrap' : 'other'} '
-          'applied=${resultTasks.length} '
-          'workspaces=${resultTasks.map((t) => t.workspace).toSet().length}',
-        );
       }
     }
 
@@ -321,13 +295,15 @@ class _SessionViewState extends ConsumerState<SessionView> {
               Flexible(
                 child: Consumer(
                   builder: (context, ref, _) {
-                    final sessionsMap =
-                        ref.watch(sessionIndexProvider)[widget.device.id];
+                    final sessionsMap = ref.watch(
+                      sessionIndexProvider,
+                    )[widget.device.id];
                     final sorted =
                         (sessionsMap?.values.toList() ?? <SessionState>[])
                           ..sort(SessionRanking.compareSessions);
-                    final activeId =
-                        ref.watch(activeSessionProvider)[widget.device.id];
+                    final activeId = ref.watch(
+                      activeSessionProvider,
+                    )[widget.device.id];
                     return SessionPanelSheet(
                       sessions: sorted,
                       activeSessionId: activeId,
@@ -349,9 +325,12 @@ class _SessionViewState extends ConsumerState<SessionView> {
   Future<void> _jumpToSession(String sessionId) async {
     final controller = _controller;
     if (controller == null) return;
+    final workspace = ref
+        .read(sessionIndexProvider)[widget.device.id]?[sessionId]
+        ?.workspace;
     try {
       await controller.evaluateJavascript(
-        source: SessionJump.jumpScript(sessionId),
+        source: SessionJump.jumpScript(sessionId, workspace: workspace),
       );
     } catch (_) {}
   }

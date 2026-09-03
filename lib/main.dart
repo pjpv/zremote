@@ -6,6 +6,7 @@ import 'models/device_label.dart';
 import 'services/biometric.dart';
 import 'services/device_store.dart';
 import 'services/notifier.dart';
+import 'state/keepalive.dart';
 import 'state/locale.dart';
 import 'state/session_pool.dart';
 import 'theme.dart';
@@ -15,12 +16,21 @@ import 'ui/app_shell.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await NotifierService.instance.init();
-  final initialLocale = await DeviceStore.instance.localeSetting();
+  final store = DeviceStore.instance;
+  final initialLocale = await store.localeSetting();
+  final initialBiometric = await store.biometricEnabled();
+  final initialKeepAlive = await store.keepAliveEnabled();
   runApp(
     ProviderScope(
       overrides: [
         localeSettingProvider.overrideWith(
           () => LocaleSettingNotifier(initial: initialLocale),
+        ),
+        biometricProvider.overrideWith(
+          () => BiometricNotifier(initial: initialBiometric),
+        ),
+        keepAliveEnabledProvider.overrideWith(
+          () => KeepAliveEnabledNotifier(initial: initialKeepAlive),
         ),
       ],
       child: const ZRemoteApp(),
@@ -72,7 +82,7 @@ class _BiometricGateState extends ConsumerState<BiometricGate>
     with WidgetsBindingObserver {
   bool _authed = false;
   bool _authenticating = false;
-  bool _startupGraceElapsed = false;
+  bool _startupPrompted = false;
   DateTime? _leftAt;
   bool _authCovered = false;
 
@@ -80,9 +90,9 @@ class _BiometricGateState extends ConsumerState<BiometricGate>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    Future.delayed(const Duration(milliseconds: 600), () {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      setState(() => _startupGraceElapsed = true);
+      _startupPrompted = true;
       if (ref.read(biometricProvider)) _unlock();
     });
   }
@@ -107,7 +117,7 @@ class _BiometricGateState extends ConsumerState<BiometricGate>
       final leftAt = _leftAt;
       _leftAt = null;
       if (!ref.read(biometricProvider)) return;
-      if (!_startupGraceElapsed) return;
+      if (!_startupPrompted) return;
       if (covered) {
         return;
       }
@@ -157,7 +167,7 @@ class _BiometricGateState extends ConsumerState<BiometricGate>
   @override
   Widget build(BuildContext context) {
     final enabled = ref.watch(biometricProvider);
-    final locked = enabled && !_authed && _startupGraceElapsed;
+    final locked = enabled && !_authed;
     final l10n = AppLocalizations.of(context) ?? l10nZh;
     return Stack(
       fit: StackFit.expand,

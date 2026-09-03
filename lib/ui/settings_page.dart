@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/app_localizations.dart';
 import '../services/biometric.dart';
@@ -301,6 +302,7 @@ class _BatteryTileState extends ConsumerState<_BatteryTile> {
     ref.listen(appLifecycleProvider, (prev, next) {
       if (next == AppLifecycleState.resumed) _refresh();
     });
+    ref.listen(keepAliveEnabledProvider, (_, _) => _refresh());
     return Card(
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
@@ -420,6 +422,16 @@ class _VersionFooter extends StatelessWidget {
   const _VersionFooter();
 
   static final _info = PackageInfo.fromPlatform();
+  static const _repoUrl = 'https://github.com/pjpv/zremote';
+
+  Future<void> _openRepo() async {
+    try {
+      await launchUrl(
+        Uri.parse(_repoUrl),
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -431,13 +443,47 @@ class _VersionFooter extends StatelessWidget {
         return Padding(
           padding: const EdgeInsets.only(top: 30),
           child: Center(
-            child: Text(
-              'ZRemote v${info.version}',
-              style: const TextStyle(
-                fontSize: 11,
-                letterSpacing: 1,
-                color: ZT.textLo,
-              ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'ZRemote v${info.version}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    letterSpacing: 1,
+                    color: ZT.textLo,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                InkWell(
+                  onTap: _openRepo,
+                  customBorder: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'github.com/pjpv/zremote',
+                          style: TextStyle(
+                            fontSize: 11,
+                            letterSpacing: 0.5,
+                            color: ZT.textLo,
+                          ),
+                        ),
+                        SizedBox(width: 5),
+                        Icon(
+                          Icons.open_in_new_outlined,
+                          size: 12,
+                          color: ZT.accent,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         );

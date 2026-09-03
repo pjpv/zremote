@@ -53,7 +53,8 @@ abstract final class EventObserver {
   var tryDecodePayload = function(p) {
     try {
       if (!p || typeof p.dataBase64 !== 'string' || p.dataBase64.length === 0) return;
-      var bytesCapOk = !p.messageBytes || p.messageBytes < $kMaxListenBytes;
+      var sizeHint = p.messageBytes != null ? p.messageBytes : Math.ceil(p.dataBase64.length * 0.75);
+      var bytesCapOk = sizeHint < $kMaxListenBytes;
       if (!bytesCapOk) return;
       var bytes;
       if (p.kind === 'fragment' && p.fragmentCount > 1) {
@@ -65,8 +66,8 @@ abstract final class EventObserver {
           slot = asm[id] = { parts: {}, got: 0, total: p.fragmentCount };
           asmOrder.push(id);
         }
+        if (!(p.fragmentIndex in slot.parts)) slot.got++;
         slot.parts[p.fragmentIndex] = b64Bytes(p.dataBase64);
-        slot.got++;
         if (slot.got < slot.total) return;
         delete asm[id];
         var idx = asmOrder.indexOf(id);

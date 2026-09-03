@@ -1,3 +1,4 @@
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zremote/models/device.dart';
 import 'package:zremote/services/event_observer.dart';
@@ -45,6 +46,22 @@ void main() {
         const ObservedEvent(type: 'completed', taskId: 'sess_b'),
       );
       expect(ids.contains(done), isFalse);
+    });
+  });
+
+  group('锁屏可见性', () {
+    test('生物锁开启 → private（锁屏不露正文）', () {
+      expect(
+        lockScreenVisibility(lockEnabled: true),
+        NotificationVisibility.private,
+      );
+    });
+
+    test('生物锁关闭 → public（完整展示）', () {
+      expect(
+        lockScreenVisibility(lockEnabled: false),
+        NotificationVisibility.public,
+      );
     });
   });
 }

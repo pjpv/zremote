@@ -7,10 +7,14 @@ import 'app_lifecycle.dart';
 import 'session_pool.dart';
 
 class KeepAliveEnabledNotifier extends Notifier<bool> {
+  KeepAliveEnabledNotifier({this.initial = true});
+
+  final bool initial;
+
   @override
   bool build() {
     _load();
-    return true;
+    return initial;
   }
 
   Future<void> _load() async {

@@ -158,6 +158,16 @@ void main() {
       );
       expect(s.contains("ws.addEventListener('message'"), isTrue);
     });
+
+    test('体积预检对称：缺 messageBytes 的帧用 base64 长度估算兜底', () {
+      final s = EventObserver.hookScript;
+      expect(s.contains('p.messageBytes != null'), isTrue);
+      expect(s.contains('* 0.75'), isTrue);
+    });
+
+    test('分片计数去重：重复投递同一 fragmentIndex 不递增 got', () {
+      expect(EventObserver.hookScript.contains('in slot.parts'), isTrue);
+    });
   });
 
   group('NotificationSpec.from', () {

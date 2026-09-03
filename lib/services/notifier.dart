@@ -125,6 +125,9 @@ abstract final class NotificationTap {
   }
 }
 
+NotificationVisibility lockScreenVisibility({required bool lockEnabled}) =>
+    lockEnabled ? NotificationVisibility.private : NotificationVisibility.public;
+
 class NotifierService {
   NotifierService._();
 
@@ -135,6 +138,9 @@ class NotifierService {
 
   bool _inited = false;
   bool _permissionAsked = false;
+  bool _lockScreenRedact = false;
+
+  void setLockScreenRedact(bool value) => _lockScreenRedact = value;
 
   Future<void> ensurePermission() async {
     if (_permissionAsked) return;
@@ -188,6 +194,7 @@ class NotifierService {
             spec.channelName,
             importance: spec.importance,
             priority: spec.priority,
+            visibility: lockScreenVisibility(lockEnabled: _lockScreenRedact),
           ),
         ),
         payload: spec.payload,

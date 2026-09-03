@@ -22,9 +22,7 @@ class _ScriptedChannel {
 }
 
 class _StubSwitch extends KeepAliveEnabledNotifier {
-  _StubSwitch(this.initial);
-
-  final bool initial;
+  _StubSwitch(bool initial) : super(initial: initial);
 
   @override
   bool build() => initial;
@@ -208,6 +206,20 @@ void main() {
       expect(log, isNot(contains('start')));
     });
 
+    test('关保活（main 预载初值）+ 有设备：激活即 stop，不闪 FGS', () async {
+      final c = ProviderContainer(
+        overrides: [
+          keepAliveEnabledProvider.overrideWith(() => _StubSwitch(false)),
+          deviceListProvider.overrideWith(() => _StubDevices([_device('d1')])),
+        ],
+      );
+      addTearDown(c.dispose);
+      c.read(keepAliveControllerProvider);
+      await drain();
+      expect(log, isNot(contains('start')));
+      expect(log, contains('stop'));
+    });
+
     test('回前台自愈：resumed 触发重拉', () async {
       final c = container();
       addTearDown(c.dispose);
@@ -220,6 +232,23 @@ void main() {
       c.read(appLifecycleProvider.notifier).set(AppLifecycleState.resumed);
       await drain();
       expect(log, ['start']);
+    });
+  });
+
+  group('冷启动初始注入（main 预载）', () {
+    test('initial=false 首读即持久值——关保活用户不闪 FGS', () async {
+      SharedPreferences.setMockInitialValues({'zremote.keepalive': false});
+      final c = ProviderContainer(
+        overrides: [
+          keepAliveEnabledProvider.overrideWith(
+            () => KeepAliveEnabledNotifier(initial: false),
+          ),
+        ],
+      );
+      addTearDown(c.dispose);
+      expect(c.read(keepAliveEnabledProvider), isFalse);
+      await Future<void>.delayed(Duration.zero);
+      expect(c.read(keepAliveEnabledProvider), isFalse);
     });
   });
 }
