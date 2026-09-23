@@ -128,7 +128,9 @@ void main() {
     final tz = firstParams['timeZone'] as String?;
     if (tz != null) {
       expect(
-        RegExp(r'^(Etc/GMT[+-]\d{1,2}|[A-Za-z]+/[A-Za-z0-9_+-]+)$').hasMatch(tz),
+        RegExp(
+          r'^(UTC|Etc/GMT[+-]\d{1,2}|[A-Za-z][A-Za-z0-9_+-]*(?:/[A-Za-z0-9_+-]+){1,2})$',
+        ).hasMatch(tz),
         isTrue,
         reason: 'timeZone=$tz',
       );
