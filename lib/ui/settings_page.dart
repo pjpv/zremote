@@ -11,6 +11,7 @@ import '../state/locale.dart';
 import '../state/notification_prefs.dart';
 import '../state/keepalive.dart';
 import '../state/session_pool.dart';
+import '../state/theme_mode.dart';
 import '../theme.dart';
 import 'section_label.dart';
 
@@ -21,46 +22,147 @@ class SettingsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: context.zt.textLo),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        titleSpacing: 0,
+        title: Text(
+          l10n.settingsTitle,
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.3,
+            color: context.zt.textHi,
+          ),
+        ),
+      ),
       body: SafeArea(
-        bottom: false,
+        top: false,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 40),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
-              child: Row(
+            SectionLabel(l10n.sectionAppearance),
+            const _CardGroup(
+              children: [_LanguageTile(), _GroupDivider(), _ThemeTile()],
+            ),
+            const SizedBox(height: 16),
+            SectionLabel(l10n.sectionSecurityKeepalive),
+            const _CardGroup(
+              children: [
+                _BiometricTile(),
+                _GroupDivider(),
+                _KeepAliveTile(),
+                _GroupDivider(),
+                _BatteryTile(),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SectionLabel(l10n.sectionNotifications),
+            const _NotificationCard(),
+            const _VersionFooter(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CardGroup extends StatelessWidget {
+  const _CardGroup({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: context.zt.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: context.zt.hairline),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(children: children),
+    );
+  }
+}
+
+class _GroupDivider extends StatelessWidget {
+  const _GroupDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 1,
+      margin: const EdgeInsets.symmetric(horizontal: 14),
+      color: context.zt.hairline,
+    );
+  }
+}
+
+class _TileRow extends StatelessWidget {
+  const _TileRow({
+    required this.title,
+    required this.subtitle,
+    this.icon,
+    this.iconColor,
+    this.trailing,
+    this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData? icon;
+  final Color? iconColor;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final zt = context.zt;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            if (icon != null) ...[
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: (iconColor ?? zt.accent).withValues(alpha: 0.10),
+                ),
+                child: Icon(icon, size: 17, color: iconColor ?? zt.accent),
+              ),
+              const SizedBox(width: 12),
+            ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.arrow_back, color: ZT.textLo),
-                  ),
-                  const SizedBox(width: 2),
                   Text(
-                    l10n.settingsTitle,
-                    style: const TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.5,
-                      color: ZT.textHi,
+                    title,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      color: zt.textHi,
                     ),
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontSize: 11.5, height: 1.4, color: zt.textLo),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 8),
-            SectionLabel(l10n.sectionGeneral),
-            const _LanguageTile(),
-            const SizedBox(height: 12),
-            SectionLabel(l10n.sectionSecurity),
-            const _BiometricTile(),
-            const SizedBox(height: 12),
-            SectionLabel(l10n.sectionBackground),
-            const _KeepAliveTile(),
-            const _BatteryTile(),
-            const SizedBox(height: 12),
-            SectionLabel(l10n.sectionNotifications),
-            const _NotificationCard(),
-            const _VersionFooter(),
+            if (trailing != null) ...[
+              const SizedBox(width: 12),
+              trailing!,
+            ],
           ],
         ),
       ),
@@ -78,26 +180,12 @@ class _LanguageTile extends ConsumerWidget {
     final current = setting == kLocaleSystem
         ? l10n.languageSystem
         : localeDisplayName(setting);
-    return Card(
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            color: ZT.accent.withValues(alpha: 0.10),
-          ),
-          child: const Icon(Icons.language, size: 22, color: ZT.accent),
-        ),
-        title: Text(
-          l10n.languageTitle,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-        ),
-        subtitle: Text(current, style: const TextStyle(fontSize: 12)),
-        trailing: const Icon(Icons.chevron_right, color: ZT.textLo),
-        onTap: () => _pick(context, ref),
-      ),
+    return _TileRow(
+      title: l10n.languageTitle,
+      subtitle: current,
+      icon: Icons.language,
+      trailing: Icon(Icons.chevron_right, color: context.zt.textLo),
+      onTap: () => _pick(context, ref),
     );
   }
 
@@ -141,7 +229,82 @@ class _LanguageTile extends ConsumerWidget {
         Icon(
           selected ? Icons.check_circle : Icons.radio_button_unchecked,
           size: 20,
-          color: selected ? ZT.accent : ZT.textLo,
+          color: selected ? context.zt.accent : context.zt.textLo,
+        ),
+        const SizedBox(width: 12),
+        Text(label, style: const TextStyle(fontSize: 14)),
+      ],
+    ),
+  );
+}
+
+class _ThemeTile extends ConsumerWidget {
+  const _ThemeTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final setting = ref.watch(themeModeSettingProvider);
+    final current = switch (setting) {
+      kThemeDark => l10n.themeDark,
+      kThemeLight => l10n.themeLight,
+      _ => l10n.themeSystem,
+    };
+    return _TileRow(
+      title: l10n.themeTitle,
+      subtitle: current,
+      icon: Icons.contrast,
+      trailing: Icon(Icons.chevron_right, color: context.zt.textLo),
+      onTap: () => _pick(context, ref),
+    );
+  }
+
+  Future<void> _pick(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
+    final setting = ref.read(themeModeSettingProvider);
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: Text(l10n.themeTitle),
+        children: [
+          _option(
+            dialogContext,
+            kThemeSystem,
+            l10n.themeSystem,
+            setting == kThemeSystem,
+          ),
+          _option(
+            dialogContext,
+            kThemeDark,
+            l10n.themeDark,
+            setting == kThemeDark,
+          ),
+          _option(
+            dialogContext,
+            kThemeLight,
+            l10n.themeLight,
+            setting == kThemeLight,
+          ),
+        ],
+      ),
+    );
+    if (choice == null || choice == setting) return;
+    await ref.read(themeModeSettingProvider.notifier).set(choice);
+  }
+
+  Widget _option(
+    BuildContext context,
+    String value,
+    String label,
+    bool selected,
+  ) => SimpleDialogOption(
+    onPressed: () => Navigator.pop(context, value),
+    child: Row(
+      children: [
+        Icon(
+          selected ? Icons.check_circle : Icons.radio_button_unchecked,
+          size: 20,
+          color: selected ? context.zt.accent : context.zt.textLo,
         ),
         const SizedBox(width: 12),
         Text(label, style: const TextStyle(fontSize: 14)),
@@ -157,27 +320,11 @@ class _BiometricTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final enabled = ref.watch(biometricProvider);
     final l10n = AppLocalizations.of(context)!;
-    return Card(
-      child: SwitchListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        secondary: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            color: ZT.accent.withValues(alpha: 0.10),
-          ),
-          child: const Icon(Icons.fingerprint, color: ZT.accent),
-        ),
-        title: Text(
-          l10n.biometricLockTitle,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-        ),
-        subtitle: Text(
-          l10n.biometricLockSubtitle,
-          style: const TextStyle(fontSize: 12),
-        ),
-        activeThumbColor: ZT.accent,
+    return _TileRow(
+      title: l10n.biometricLockTitle,
+      subtitle: l10n.biometricLockSubtitle,
+      icon: Icons.fingerprint,
+      trailing: Switch(
         value: enabled,
         onChanged: (value) => _toggle(context, ref, value),
       ),
@@ -229,27 +376,11 @@ class _KeepAliveTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final enabled = ref.watch(keepAliveEnabledProvider);
     final l10n = AppLocalizations.of(context)!;
-    return Card(
-      child: SwitchListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        secondary: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            color: ZT.accent.withValues(alpha: 0.10),
-          ),
-          child: const Icon(Icons.shield_outlined, size: 22, color: ZT.accent),
-        ),
-        title: Text(
-          l10n.keepAliveTitle,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-        ),
-        subtitle: Text(
-          enabled ? l10n.keepAliveOn : l10n.keepAliveOff,
-          style: const TextStyle(fontSize: 12),
-        ),
-        activeThumbColor: ZT.accent,
+    return _TileRow(
+      title: l10n.keepAliveTitle,
+      subtitle: enabled ? l10n.keepAliveOn : l10n.keepAliveOff,
+      icon: Icons.shield_outlined,
+      trailing: Switch(
         value: enabled,
         onChanged: (v) => ref.read(keepAliveEnabledProvider.notifier).set(v),
       ),
@@ -303,52 +434,39 @@ class _BatteryTileState extends ConsumerState<_BatteryTile> {
       if (next == AppLifecycleState.resumed) _refresh();
     });
     ref.listen(keepAliveEnabledProvider, (_, _) => _refresh());
-    return Card(
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            color: _blocked ? ZT.danger.withValues(alpha: 0.10) : ZT.surfaceHi,
-          ),
-          child: Icon(
-            _blocked ? Icons.shield_moon_outlined : Icons.battery_saver,
-            size: 20,
-            color: _blocked ? ZT.danger : ZT.accent,
+    final l10n = AppLocalizations.of(context)!;
+    return _TileRow(
+      title: l10n.batteryWhitelistTitle,
+      subtitle: switch ((_blocked, _ignored)) {
+        (true, _) => l10n.batteryBlocked,
+        (_, null) => l10n.batteryChecking,
+        (_, false) => l10n.batteryNotExempt,
+        (_, true) => l10n.batteryExempt,
+      },
+      icon: _blocked ? Icons.shield_moon_outlined : Icons.battery_saver,
+      iconColor: _blocked ? context.zt.danger : context.zt.accent,
+      trailing: switch ((_blocked, _ignored)) {
+        (_, null) => const SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+        (true, _) => Icon(
+          Icons.warning_amber_rounded,
+          size: 20,
+          color: context.zt.danger,
+        ),
+        (_, true) => Text(
+          l10n.settingsExemptBadge,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: context.zt.live,
           ),
         ),
-        title: Text(
-          AppLocalizations.of(context)!.batteryWhitelistTitle,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-        ),
-        subtitle: Text(switch ((_blocked, _ignored)) {
-          (true, _) => AppLocalizations.of(context)!.batteryBlocked,
-          (_, null) => AppLocalizations.of(context)!.batteryChecking,
-          (_, false) => AppLocalizations.of(context)!.batteryNotExempt,
-          (_, true) => AppLocalizations.of(context)!.batteryExempt,
-        }, style: const TextStyle(fontSize: 12)),
-        trailing: switch ((_blocked, _ignored)) {
-          (_, null) => const SizedBox(
-            width: 16,
-            height: 16,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-          (true, _) => const Icon(
-            Icons.warning_amber_rounded,
-            size: 20,
-            color: ZT.danger,
-          ),
-          (_, true) => const Icon(
-            Icons.check_circle,
-            size: 20,
-            color: ZT.accent,
-          ),
-          (_, false) => const Icon(Icons.chevron_right, color: ZT.textLo),
-        },
-        onTap: _blocked || _ignored != true ? _request : null,
-      ),
+        (_, false) => Icon(Icons.chevron_right, color: context.zt.textLo),
+      },
+      onTap: _blocked || _ignored != true ? _request : null,
     );
   }
 }
@@ -367,53 +485,48 @@ class _NotificationCard extends ConsumerWidget {
       String subtitle,
       bool value,
       ValueChanged<bool> onChanged,
-    ) => SwitchListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14),
-      title: Text(
-        title,
-        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-      ),
-      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-      activeThumbColor: ZT.accent,
-      value: value,
-      onChanged: onChanged,
+    ) => _TileRow(
+      title: title,
+      subtitle: subtitle,
+      trailing: Switch(value: value, onChanged: onChanged),
     );
 
-    return Card(
-      child: Column(
-        children: [
-          tile(
-            l10n.notifApprovalTitle,
-            l10n.notifApprovalSubtitle,
-            prefs.approval,
-            (v) => notifier.set(prefs.copyWith(approval: v)),
-          ),
-          const Divider(indent: 16, endIndent: 16, height: 1),
-          tile(
-            l10n.notifCompleteTitle,
-            l10n.notifCompleteSubtitle,
-            prefs.complete,
-            (v) => notifier.set(prefs.copyWith(complete: v)),
-          ),
-          const Divider(indent: 16, endIndent: 16, height: 1),
-          tile(
-            l10n.notifFailTitle,
-            l10n.notifFailSubtitle,
-            prefs.fail,
-            (v) => notifier.set(prefs.copyWith(fail: v)),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 6, 16, 14),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                l10n.notifFootnote,
-                style: const TextStyle(fontSize: 11, color: ZT.textLo),
+    return _CardGroup(
+      children: [
+        tile(
+          l10n.notifApprovalTitle,
+          l10n.notifApprovalSubtitle,
+          prefs.approval,
+          (v) => notifier.set(prefs.copyWith(approval: v)),
+        ),
+        const _GroupDivider(),
+        tile(
+          l10n.notifCompleteTitle,
+          l10n.notifCompleteSubtitle,
+          prefs.complete,
+          (v) => notifier.set(prefs.copyWith(complete: v)),
+        ),
+        const _GroupDivider(),
+        tile(
+          l10n.notifFailTitle,
+          l10n.notifFailSubtitle,
+          prefs.fail,
+          (v) => notifier.set(prefs.copyWith(fail: v)),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 4, 18, 14),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              l10n.notifFootnote,
+              style: TextStyle(
+                fontSize: 11,
+                color: context.zt.textTertiary,
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -441,43 +554,70 @@ class _VersionFooter extends StatelessWidget {
         final info = snapshot.data;
         if (info == null) return const SizedBox(height: 40);
         return Padding(
-          padding: const EdgeInsets.only(top: 30),
+          padding: const EdgeInsets.only(top: 24, bottom: 20),
           child: Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  'ZRemote v${info.version}',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    letterSpacing: 1,
-                    color: ZT.textLo,
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      'ZRemote',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: context.zt.textHi,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'v${info.version}',
+                      style: zrMono(
+                        fontSize: 11,
+                        weight: FontWeight.w400,
+                        letterSpacing: 0.4,
+                        color: context.zt.textLo,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 InkWell(
                   onTap: _openRepo,
                   customBorder: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        Icon(
+                          Icons.verified_outlined,
+                          size: 13,
+                          color: context.zt.accent,
+                        ),
+                        const SizedBox(width: 5),
                         Text(
-                          'github.com/pjpv/zremote',
+                          '${AppLocalizations.of(context)!.repoPrefix}: github.com/pjpv/zremote',
                           style: TextStyle(
-                            fontSize: 11,
-                            letterSpacing: 0.5,
-                            color: ZT.textLo,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.3,
+                            color: context.zt.accent,
                           ),
                         ),
-                        SizedBox(width: 5),
+                        const SizedBox(width: 5),
                         Icon(
                           Icons.open_in_new_outlined,
                           size: 12,
-                          color: ZT.accent,
+                          color: context.zt.accent,
                         ),
                       ],
                     ),

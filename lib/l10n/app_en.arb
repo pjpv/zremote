@@ -3,57 +3,57 @@
   "commonCancel": "Cancel",
   "commonSave": "Save",
   "commonGotIt": "Got it",
-
   "manageTitle": "Devices",
-  "devicesCount": "Devices · {count}",
+  "devicesCount": "Bound devices ({count})",
   "importPasteTooltip": "Import via pasted link",
   "importScanLabel": "Scan QR to import",
   "pasteDialogTitle": "Paste control link",
-  "importButton": "Import",
+  "importButton": "Connect and import",
+  "pasteCharCount": "{used} / {max} chars",
   "importFailed": "Import failed: the link must include sid and hash parameters",
   "manyDevicesTitle": "Quite a few devices",
   "manyDevicesBody": "More live WebView sessions means more memory. With 6+ devices, low-RAM phones may kill the app in the background. Continue?",
   "emptyTitle": "No devices yet",
-  "emptyBody": "On the desktop ZCode, open \"Mobile Remote Control\" and add this computer via its QR code or control link. Import once — it stays valid.",
+  "emptyBody": "Open \"Mobile Remote Control\" in ZCode on your computer, then connect by scanning the QR code or pasting the link. Import once, stays valid.",
   "unnamedDevice": "Unnamed device",
-  "deviceAddedOn": "Added on {date}",
+  "deviceAddedOn": "Added {date}",
   "menuOpenSession": "Open session",
-  "menuRename": "Rename",
-  "menuReplace": "Replace link",
-  "menuDelete": "Delete",
+  "menuRename": "Rename device",
+  "menuReplace": "Replace connection",
+  "menuDelete": "Unlink device",
   "replaceSheetTitle": "Replace control link",
-  "replaceSheetBody": "If the link stopped working, scan a new QR code or paste a new link. Device name and settings are kept.",
-  "replaceScan": "Scan to replace",
-  "replacePaste": "Paste a link",
+  "replaceSheetBody": "Target device: {name} · Device name and local data stay unchanged",
+  "replaceScan": "Scan new control link QR",
+  "replacePaste": "Paste new link from clipboard",
   "replacePasteDialogTitle": "Paste the new control link",
   "replaceDone": "Control link replaced",
   "replaceDuplicate": "Conflicts with {name} — one computer can only be added once",
   "renameDialogTitle": "Rename device",
-  "deleteDeviceTitle": "Delete {name}?",
-  "deleteDeviceBody": "Only the identity saved on this phone is removed; the desktop side is unaffected. You can scan again anytime.",
+  "renameFieldLabel": "Device name",
+  "renameHint": "Add a location or purpose to tell devices apart",
+  "renameCounter": "{used} / {max}",
+  "deleteDeviceTitle": "Unlink \"{name}\"?",
+  "deleteDeviceBody": "Stored credentials and the device name will be removed on this phone. Nothing on the computer is affected.",
   "settingsEntryTitle": "Settings",
   "settingsEntrySubtitle": "Security · Background · Notifications · Language",
   "settingsEntryRisk": "Notifications are limited — open Settings",
   "scannerTitle": "Scan QR code",
-  "scannerHint": "Point at the remote-control QR code shown on the desktop",
-  "scannerReplaceHint": "Point at the desktop's new remote-control QR code",
+  "scannerHint": "Encrypted relay connects after scanning",
+  "scannerReplaceHint": "Scan the new QR from desktop",
   "scannerPermTitle": "Camera unavailable",
   "scannerPermBody": "Scanning needs camera access. Allow it for ZRemote in system settings, then come back.",
   "scannerPermOpenSettings": "Open settings",
   "invalidQr": "Not a valid remote-control QR code (missing sid/hash)",
-  "importDuplicate": "{name} is already imported — switched to it",
-
-  "switchDevice": "Switch device",
-  "refreshTooltip": "Refresh (re-stamps the link timestamp)",
+  "importDuplicate": "\"{name}\" already imported; switched to it",
+  "refreshTooltip": "Refresh (reload relay page)",
   "statusLive": "Session alive",
   "statusError": "Connection error",
   "statusConnecting": "Connecting",
-  "errorBannerDetail": "Auto-reload didn't recover. If it keeps failing, the desktop identity may have rotated — import again by scanning the QR code.",
+  "errorBannerDetail": "Auto-reload did not recover. If this keeps failing, the computer identity may have rotated — re-scan or re-import the link.",
   "retry": "Retry",
-  "sessionsPanelTooltip": "Session list",
+  "sessionsPanelTooltip": "Session overview",
   "sessionsPanelTitle": "Sessions",
   "sessionsPanelEmpty": "No sessions on this device",
-
   "sessionGroupToday": "Today",
   "sessionGroupYesterday": "Yesterday",
   "sessionGroupDays": "{n}d",
@@ -70,8 +70,10 @@
   "sessionTimeMinutes": "{n}m",
   "sessionTimeHours": "{n}h",
   "sessionTimeDays": "{n}d",
-
-  "lockTitle": "Locked",
+  "lockTitle": "ZRemote",
+  "lockActionPrimary": "Tap face / fingerprint to unlock",
+  "lockActionFallback": "or use screen lock password",
+  "lockFooter": "Credentials encrypted on this device",
   "unlockButton": "Unlock",
   "unlockReason": "Verify to unlock ZRemote",
   "biometricEnableReason": "Verify to turn on the ZRemote biometric lock",
@@ -80,32 +82,34 @@
   "biometricNoLockToast": "No usable screen lock on this device; can't enable",
   "biometricForceDisabledToast": "No usable screen lock remains — lock force-disabled to prevent lockout",
   "authIncompleteToast": "Verification incomplete; switch unchanged ({error})",
-
-  "settingsTitle": "Settings",
+  "settingsTitle": "App settings",
   "sectionGeneral": "General",
   "sectionSecurity": "Security",
   "sectionBackground": "Background",
   "sectionNotifications": "Notifications",
   "languageTitle": "Language",
   "languageSystem": "Follow system",
+  "themeTitle": "Color theme",
+  "themeSystem": "Follow system",
+  "themeDark": "Dark",
+  "themeLight": "Light",
   "biometricLockTitle": "Biometric lock",
-  "biometricLockSubtitle": "Verify on launch and when returning after being away",
-  "keepAliveTitle": "Background keep-alive",
-  "keepAliveOn": "Session events still arrive in real time in background",
-  "keepAliveOff": "May get frozen by the system once backgrounded",
+  "biometricLockSubtitle": "Verify on return after cold start or long absence",
+  "keepAliveTitle": "Background keep-alive channel",
+  "keepAliveOn": "Keep receiving session events in background",
+  "keepAliveOff": "May be frozen by the system in background",
   "batteryWhitelistTitle": "Battery optimization whitelist",
   "batteryBlocked": "Guard service restricted by the system: open the power policy and set \"No restrictions\"",
   "batteryChecking": "Checking…",
   "batteryNotExempt": "Not exempt: tap to request (some vendors also need auto-start allowed)",
-  "batteryExempt": "Exempt — background no longer throttled by Doze",
-  "notifApprovalTitle": "Approval requests",
-  "notifApprovalSubtitle": "Needs your approval or input (recommended)",
-  "notifCompleteTitle": "Task completed",
+  "batteryExempt": "Exempted · unaffected by Doze",
+  "notifApprovalTitle": "Approval & input blockers",
+  "notifApprovalSubtitle": "High-priority popup when AI tasks need confirmation",
+  "notifCompleteTitle": "Long task completion",
   "notifCompleteSubtitle": "Notify when a session finishes",
   "notifFailTitle": "Task failed",
   "notifFailSubtitle": "Notify when a session errors",
   "notifFootnote": "Notifications are tagged with their device and session; the session you're viewing stays silent",
-
   "notifChannelApproval": "Approval requests",
   "notifChannelFail": "Task failed",
   "notifChannelDone": "Task completed",
@@ -117,5 +121,773 @@
   "notifErrorTitle": "[{device}] {session} failed",
   "notifErrorBody": "The task failed — come take a look",
   "notifDoneTitle": "[{device}] {session} finished",
-  "notifDoneBody": "The task finished — come see the results"
+  "notifDoneBody": "The task finished — come see the results",
+  "automationTooltip": "Automations",
+  "automationTabOffPeak": "Off-peak tasks",
+  "automationTabScheduled": "Scheduled",
+  "automationOffPeakHint": "Runs automatically while the computer is idle. Queued tasks can be paused, resumed or cancelled.",
+  "automationOfflineHint": "Device offline: list is the last snapshot, actions disabled",
+  "automationNew": "New task",
+  "automationEmptyOffPeakTitle": "No off-peak tasks",
+  "automationEmptyOffPeakBody": "Submitted prompts run whenever cloud compute frees up.",
+  "automationEmptyScheduledTitle": "No scheduled tasks",
+  "automationEmptyScheduledBody": "Run prompts automatically on a cron schedule.",
+  "automationStatusQueued": "Queued",
+  "automationStatusRunning": "Running",
+  "automationStatusPaused": "Paused",
+  "automationStatusCompleted": "Done",
+  "automationStatusFailed": "Failed",
+  "automationStatusCancelled": "Cancelled",
+  "automationQueuePosition": "Queue position {n}",
+  "automationPause": "Pause",
+  "automationResume": "Resume",
+  "automationCancel": "Cancel",
+  "automationDelete": "Delete",
+  "automationEdit": "Edit",
+  "automationRunNow": "Run now",
+  "automationRunQueued": "Queued for execution",
+  "automationRunDuplicate": "Previous run still queued",
+  "automationDeleteTitle": "Delete task",
+  "automationDeleteOffPeakBody": "This cannot be undone.",
+  "automationDeleteScheduledBody": "This cannot be undone.",
+  "automationCancelRunningBody": "This stops the running session.",
+  "automationOpFailed": "Action failed, please retry",
+  "automationSaved": "Saved",
+  "automationFormNew": "New off-peak task",
+  "automationFormEdit": "Edit task",
+  "automationKindOffPeak": "Off-peak",
+  "automationKindScheduled": "Scheduled",
+  "automationFieldTitle": "Task name",
+  "automationFieldPrompt": "Prompt / instruction",
+  "automationFieldWorkspace": "Workspace",
+  "automationFieldWorkspaceManual": "Workspace path",
+  "automationFieldSchedule": "Schedule",
+  "automationCronDaily": "Daily",
+  "automationCronCustom": "Custom",
+  "automationCronEveryHours": "Every {n} hours",
+  "automationCronWeeklyOn": "Every {weekday} at {time}",
+  "automationCronInvalid": "Invalid cron expression (5 fields: min hour day month weekday)",
+  "automationWeekdayMon": "Mon",
+  "automationWeekdayTue": "Tue",
+  "automationWeekdayWed": "Wed",
+  "automationWeekdayThu": "Thu",
+  "automationWeekdayFri": "Fri",
+  "automationWeekdaySat": "Sat",
+  "automationWeekdaySun": "Sun",
+  "automationNextRun": "Next: {time}",
+  "automationTitleRequired": "Title is required",
+  "automationPromptRequired": "Prompt is required",
+  "automationWorkspaceRequired": "Workspace is required",
+  "automationPromptTooLong": "Prompt exceeds the 4000-character limit",
+  "automationOffPeakFormHint": "The task runs in queue while this device host is idle.",
+  "automationAdvanced": "Advanced",
+  "automationPermissionMode": "Permission mode",
+  "automationFieldModel": "Model",
+  "automationFieldThoughtLevel": "Thinking level",
+  "automationReuseTemplate": "New from template",
+  "automationFailureReason": "Failure reason: {reason}",
+  "@automationFailureReason": {"description": "Failed off-peak card line (host failureReason)", "placeholders": {"reason": {"type": "String"}}},
+  "automationFilesChanged": "{n} files changed",
+  "@automationFilesChanged": {"description": "Completed off-peak card line (host filesChanged)", "placeholders": {"n": {"type": "int"}}},
+  "automationCreateLimitReached": "Automation limit reached (20). Delete unused ones first.",
+  "@automationCreateLimitReached": {"description": "createAutomation AUTOMATION_CREATE_LIMIT_REACHED snackbar"},
+  "automationCreateEligibility": "Not currently eligible for idle-time tasks",
+  "@automationCreateEligibility": {"description": "createTask errorCategory eligibility_3101 snackbar"},
+  "automationCreateQuota": "Ticket quota unavailable, try again later",
+  "@automationCreateQuota": {"description": "createTask errorCategory quota_3103 snackbar"},
+  "automationCreateValidation": "Validation failed, please check the form",
+  "@automationCreateValidation": {"description": "createTask errorCategory client_validation snackbar"},
+  "automationCreateNetwork": "Network issue, please retry",
+  "@automationCreateNetwork": {"description": "createTask errorCategory network snackbar"},
+  "presetLabel": "Presets",
+  "presetBuildClean": "Build artifact cleanup",
+  "dialNextCountdown": "Next in {duration}",
+  "dialTodayCount": "{count} scheduled today",
+  "dialNoSchedule": "No schedules",
+  "claimEntryTooltip": "Claim plans",
+  "@claimEntryTooltip": {
+    "description": "Session toolbar entry to the claim page"
+  },
+  "claimScopeLabel": "Benefit credited to",
+  "@claimScopeLabel": {
+    "description": "Claim page ready list header: device the benefits are credited to"
+  },
+  "claimEmpty": "No claimable plans right now",
+  "@claimEmpty": {
+    "description": "Claim page empty state title"
+  },
+  "claimEmptyHint": "If any account on this device has already claimed, or the activity hasn't started / has ended, you'll also see this.",
+  "@claimEmptyHint": {
+    "description": "Claim page empty state ambiguity hint (preview empty may mean already claimed)"
+  },
+  "claimAction": "Claim",
+  "@claimAction": {
+    "description": "Claim button on plan card"
+  },
+  "claimRefresh": "Refresh",
+  "@claimRefresh": {
+    "description": "Claim page appbar refresh button"
+  },
+  "claimUnavailable": "Activity not available",
+  "@claimUnavailable": {
+    "description": "Snackbar when captcha config disabled or entry unavailable"
+  },
+  "claimCaptchaFallbackTitle": "Verification needed",
+  "@claimCaptchaFallbackTitle": {
+    "description": "Fallback dialog title when traceless captcha failed"
+  },
+  "claimCaptchaFallbackBody": "Automatic verification failed. Tap the back button (top-left) to return to the remote page, then tap Claim on the activity banner at the bottom of the page and finish the slider check.",
+  "@claimCaptchaFallbackBody": {
+    "description": "Fallback dialog body: manual claim via official banner on the remote page"
+  },
+  "claimSuccessTitle": "You now have access to {plan}",
+  "@claimSuccessTitle": {
+    "description": "Ticket dialog title",
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
+  "claimSuccessReady": "{list} is ready to use.",
+  "@claimSuccessReady": {
+    "description": "Ticket dialog description when already effective",
+    "placeholders": {
+      "list": {
+        "type": "String"
+      }
+    }
+  },
+  "claimSuccessPending": "{list} will be available on {time}.",
+  "@claimSuccessPending": {
+    "description": "Ticket dialog description when starts later",
+    "placeholders": {
+      "list": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "claimTicketAmountUnit": "Tokens",
+  "@claimTicketAmountUnit": {
+    "description": "Ticket amount row unit suffix"
+  },
+  "claimTicketBenefitDaily": "{model} daily {amount} {unit}",
+  "@claimTicketBenefitDaily": {
+    "description": "Ticket benefit line, daily period",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "claimTicketBenefit": "{model} {amount} {unit}",
+  "@claimTicketBenefit": {
+    "description": "Ticket benefit line",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "claimTicketEndsAt": "Valid until {time}",
+  "@claimTicketEndsAt": {
+    "description": "Ticket validity line",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "claimReplayTooltip": "Replay ticket animation",
+  "@claimReplayTooltip": {
+    "description": "Ticket replay button tooltip"
+  },
+  "claimGotIt": "Got it",
+  "@claimGotIt": {
+    "description": "Acknowledge button in claim result dialogs"
+  },
+  "claimCode1001": "Plan not found",
+  "@claimCode1001": {
+    "description": "Claim failure code 1001"
+  },
+  "claimCode1002": "This activity has ended or isn't claimable yet",
+  "@claimCode1002": {
+    "description": "Claim failure code 1002"
+  },
+  "claimCode1003": "You've already claimed this plan",
+  "@claimCode1003": {
+    "description": "Claim failure code 1003"
+  },
+  "claimCode1004": "Your account or client version doesn't meet the claim requirements",
+  "@claimCode1004": {
+    "description": "Claim failure code 1004"
+  },
+  "claimCode1005": "Today's claim quota is used up",
+  "@claimCode1005": {
+    "description": "Claim failure code 1005 (quota exhausted; retry hint appended separately)"
+  },
+  "claimCode3001": "Invalid claim parameters, refresh and try again",
+  "@claimCode3001": {
+    "description": "Claim failure code 3001"
+  },
+  "claimCode3007": "Captcha verification failed, please try again",
+  "@claimCode3007": {
+    "description": "Claim failure code 3007"
+  },
+  "claimCode401": "Please log in first, then come back to claim",
+  "@claimCode401": {
+    "description": "Claim failure code 401"
+  },
+  "claimFailedGeneric": "Claim failed, try again later",
+  "@claimFailedGeneric": {
+    "description": "Generic claim failure text (unknown code / snackbar)"
+  },
+  "claimFailedTitle": "Claim failed",
+  "@claimFailedTitle": {
+    "description": "Claim failure dialog title"
+  },
+  "claimRetryAt": "Retry after {time}",
+  "@claimRetryAt": {
+    "description": "1005 same-day retry hint with formatted time",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "claimRetryTomorrow": "Try again tomorrow",
+  "@claimRetryTomorrow": {
+    "description": "1005 cross-day retry hint"
+  },
+  "claimDeviceNotReady": "Device not ready — check the connection and try again",
+  "@claimDeviceNotReady": {
+    "description": "Claim page error state when bridge not ready / timed out"
+  },
+  "claimServiceUnavailable": "Page service is temporarily unavailable — try again shortly",
+  "@claimServiceUnavailable": {
+    "description": "Claim page error when session is live but page fiber services are still reloading (e.g. right after a successful claim)"
+  },
+  "telemetryBound": "Devices",
+  "@telemetryBound": {
+    "description": "Telemetry banner: bound devices label"
+  },
+  "telemetryOnlineUnit": "online",
+  "@telemetryOnlineUnit": {
+    "description": "Telemetry banner: online unit label"
+  },
+  "telemetryOnlineCount": "{n} online",
+  "@telemetryOnlineCount": {
+    "description": "Telemetry banner: online unit",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "telemetryUnread": "Unread",
+  "@telemetryUnread": {
+    "description": "Telemetry banner / device metric cell: unread label"
+  },
+  "telemetryUnreadUnit": "pending review",
+  "@telemetryUnreadUnit": {
+    "description": "Telemetry banner: unread unit label"
+  },
+  "telemetryUnreadCount": "{n} pending review",
+  "@telemetryUnreadCount": {
+    "description": "Unread count unit text",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "pairedHostsSection": "Bound devices ({count})",
+  "@pairedHostsSection": {
+    "description": "Section header for paired host devices list",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "metricUnreadZero": "0 pending",
+  "@metricUnreadZero": {
+    "description": "Device metric cell: zero unread"
+  },
+  "metricCredentials": "Credentials",
+  "@metricCredentials": {
+    "description": "Device metric cell: credentials label"
+  },
+  "chipOnline": "Online",
+  "@chipOnline": {
+    "description": "Device card status chip: online"
+  },
+  "chipOffline": "Offline",
+  "@chipOffline": {
+    "description": "Device card status chip: offline"
+  },
+  "addDeviceCardTitle": "Add device",
+  "@addDeviceCardTitle": {
+    "description": "Dashed add-device card title / import sheet heading"
+  },
+  "addDeviceCardSub": "Scan a QR code or import a link from the clipboard",
+  "@addDeviceCardSub": {
+    "description": "Dashed add-device card subtitle"
+  },
+  "importSheetScanSub": "The pairing QR code generated on the computer",
+  "@importSheetScanSub": {
+    "description": "Import sheet: scan entry subtitle"
+  },
+  "importSheetPasteSub": "Read the control link from the clipboard",
+  "@importSheetPasteSub": {
+    "description": "Import sheet: paste entry subtitle"
+  },
+  "pasteDialogSub": "Paste the control link generated on your computer — import once, stays valid",
+  "@pasteDialogSub": {
+    "description": "Paste dialog subtitle"
+  },
+  "pasteFieldLabel": "Link",
+  "@pasteFieldLabel": {
+    "description": "Paste dialog input label"
+  },
+  "pasteValidFormat": "Link verified",
+  "@pasteValidFormat": {
+    "description": "Paste dialog live validation chip"
+  },
+  "automationCenterTitle": "Automation",
+  "@automationCenterTitle": {
+    "description": "Automation page appbar title"
+  },
+  "automationScopeLabel": "Target device",
+  "@automationScopeLabel": {
+    "description": "Scope dock label on automation page"
+  },
+  "automationRelayOnline": "relay online",
+  "@automationRelayOnline": {
+    "description": "Scope dock tag: relay online"
+  },
+  "automationRelayOffline": "relay offline",
+  "@automationRelayOffline": {
+    "description": "Scope dock tag: relay offline"
+  },
+  "automationPolicyTitle": "Off-peak task queue",
+  "@automationPolicyTitle": {
+    "description": "Policy banner title on off-peak tab"
+  },
+  "automationQueueTitle": "Queue ({n})",
+  "@automationQueueTitle": {
+    "description": "Off-peak section head with count",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "automationQueueBadge": "Pending",
+  "@automationQueueBadge": {
+    "description": "Off-peak section head badge when tasks pending"
+  },
+  "automationPlansTitle": "Plans ({n})",
+  "@automationPlansTitle": {
+    "description": "Scheduled section head with count",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "automationDockOffPeak": "New off-peak task for {name}",
+  "@automationDockOffPeak": {
+    "description": "Bottom dock button on off-peak tab",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "automationDockScheduled": "New schedule for {name}",
+  "@automationDockScheduled": {
+    "description": "Bottom dock button on scheduled tab",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "formTargetLabel": "Target workstation (device-scoped)",
+  "@formTargetLabel": {
+    "description": "Form target-device lock card label"
+  },
+  "advPermissionDesc": "Approval scope on the host",
+  "@advPermissionDesc": {
+    "description": "Advanced row: permission mode description"
+  },
+  "advModelDesc": "Follows host subscription",
+  "@advModelDesc": {
+    "description": "Advanced row: model description"
+  },
+  "advThoughtDesc": "Follows host default",
+  "@advThoughtDesc": {
+    "description": "Advanced row: thought level description"
+  },
+  "automationFieldTitleHint": "Task name…",
+  "@automationFieldTitleHint": {
+    "description": "Form title input hint"
+  },
+  "automationCronInterpreted": "Interpreted: {value}",
+  "@automationCronInterpreted": {
+    "description": "Cron interpreter bar with humanized text",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "sectionAppearance": "Appearance",
+  "@sectionAppearance": {
+    "description": "Settings section: appearance"
+  },
+  "sectionSecurityKeepalive": "Security & background",
+  "@sectionSecurityKeepalive": {
+    "description": "Settings section: security + keepalive"
+  },
+  "settingsExemptBadge": "Exempt ✓",
+  "@settingsExemptBadge": {
+    "description": "Battery whitelist row: exempt badge"
+  },
+  "sessionsPanelSubtitle": "{name} · {n} sessions",
+  "@sessionsPanelSubtitle": {
+    "description": "Session panel sheet subtitle",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "sessionsPanelCount": "{n} sessions",
+  "@sessionsPanelCount": {
+    "description": "Session panel sheet subtitle without device",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "claimActionBusy": "Claiming…",
+  "@claimActionBusy": {
+    "description": "Claim hero button label while claim in flight"
+  },
+  "smartClipDetected": "Valid relay credential detected in clipboard",
+  "@smartClipDetected": {
+    "description": "Smart clipboard pill: detected valid relay credential"
+  },
+  "smartClipAction": "Fill now",
+  "@smartClipAction": {
+    "description": "Smart clipboard pill action"
+  },
+  "pasteChannelChip": "Encrypted relay channel",
+  "@pasteChannelChip": {
+    "description": "Paste dialog header hw-chip label"
+  },
+  "renameSubtitle": "Only changes the display name on this phone; pairing and data are untouched",
+  "@renameSubtitle": {
+    "description": "Rename sheet subtitle"
+  },
+  "renameSave": "Save changes",
+  "@renameSave": {
+    "description": "Rename sheet confirm button"
+  },
+  "replaceScanSub": "The new QR code generated on the computer",
+  "@replaceScanSub": {
+    "description": "Replace option subtitle: scan"
+  },
+  "replacePasteSub": "Parse an https://… credential",
+  "@replacePasteSub": {
+    "description": "Replace option subtitle: paste"
+  },
+  "deleteConfirmAction": "Unlink & disconnect",
+  "@deleteConfirmAction": {
+    "description": "Unlink confirm button"
+  },
+  "scannerPrimaryHint": "Align with the QR code shown on the computer",
+  "@scannerPrimaryHint": {
+    "description": "Scanner primary hint line"
+  },
+  "sessionTitleTooltip": "Current device: {name} · Tap to go back to devices",
+  "@sessionTitleTooltip": {
+    "description": "Session appbar title tooltip",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "automationFormNewScheduled": "New scheduled task",
+  "@automationFormNewScheduled": {
+    "description": "Scheduled form appbar title"
+  },
+  "automationFieldTitleScheduled": "Plan name",
+  "@automationFieldTitleScheduled": {
+    "description": "Scheduled form title label"
+  },
+  "automationFieldTitleHintScheduled": "Enter plan name…",
+  "@automationFieldTitleHintScheduled": {
+    "description": "Scheduled form title placeholder"
+  },
+  "automationFieldPromptScheduled": "Script to run",
+  "@automationFieldPromptScheduled": {
+    "description": "Scheduled form prompt label"
+  },
+  "presetGitBackup": "Git full backup",
+  "@presetGitBackup": {
+    "description": "Off-peak preset: git backup"
+  },
+  "presetSecurityAudit": "Security vulnerability audit",
+  "@presetSecurityAudit": {
+    "description": "Off-peak preset: security audit"
+  },
+  "claimLimitedTag": "Device-scoped limited voucher",
+  "@claimLimitedTag": {
+    "description": "Claim hero badge tag"
+  },
+  "repoPrefix": "Official open-source repo",
+  "@repoPrefix": {
+    "description": "Settings repo footer prefix"
+  },
+  "automationCronWeekdays": "Weekdays",
+  "@automationCronWeekdays": {
+    "description": "Cron preset segment: weekdays"
+  },
+  "automationCronWeekend": "Weekend",
+  "@automationCronWeekend": {
+    "description": "Cron preset segment: weekend"
+  },
+  "automationCronHourly": "Hourly",
+  "@automationCronHourly": {
+    "description": null
+  },
+  "automationCronWeekdaysOn": "Weekdays at {time}",
+  "@automationCronWeekdaysOn": {
+    "description": null
+  },
+  "automationCronWeekendOn": "Weekends at {time}",
+  "@automationCronWeekendOn": {
+    "description": null
+  },
+  "countdownHm": "{h}h {m}m",
+  "@countdownHm": {
+    "description": null
+  },
+  "countdownM": "{m}m",
+  "@countdownM": {
+    "description": null
+  },
+  "countdownLt1": "<1m",
+  "@countdownLt1": {
+    "description": null
+  },
+  "usageRefresh": "Refresh",
+  "@usageRefresh": {
+    "description": null
+  },
+  "usageSummaryTotalTokens": "Lifetime tokens",
+  "@usageSummaryTotalTokens": {
+    "description": null
+  },
+  "usageSummaryPeakDay": "Peak day",
+  "@usageSummaryPeakDay": {
+    "description": null
+  },
+  "usageSummaryLongestSession": "Longest session",
+  "@usageSummaryLongestSession": {
+    "description": null
+  },
+  "usageSummaryCurrentStreak": "Current streak",
+  "@usageSummaryCurrentStreak": {
+    "description": null
+  },
+  "usageSummaryLongestStreak": "Longest streak",
+  "@usageSummaryLongestStreak": {
+    "description": null
+  },
+  "usageSummaryFavoriteModel": "Top model",
+  "@usageSummaryFavoriteModel": {
+    "description": null
+  },
+  "usageHeatmapTitle": "Activity heatmap",
+  "@usageHeatmapTitle": {
+    "description": null
+  },
+  "usageHeatmapLess": "Less",
+  "@usageHeatmapLess": {
+    "description": null
+  },
+  "usageHeatmapMore": "More",
+  "@usageHeatmapMore": {
+    "description": null
+  },
+  "usageTrendTitle": "Daily model usage",
+  "@usageTrendTitle": {
+    "description": null
+  },
+  "usageShareTitle": "Model share",
+  "@usageShareTitle": {
+    "description": null
+  },
+  "usageOther": "Other",
+  "@usageOther": {
+    "description": null
+  },
+  "usageRange7d": "7 days",
+  "@usageRange7d": {
+    "description": null
+  },
+  "usageRange30d": "30 days",
+  "@usageRange30d": {
+    "description": null
+  },
+  "usageEmptyTitle": "No usage yet",
+  "@usageEmptyTitle": {
+    "description": null
+  },
+  "usageEmptyDesc": "Stats will appear once you start using ZCode",
+  "@usageEmptyDesc": {
+    "description": null
+  },
+  "usageSectionUnavailable": "Stats unavailable",
+  "@usageSectionUnavailable": {
+    "description": null
+  },
+  "usageDayTotalTokens": "Day tokens",
+  "@usageDayTotalTokens": {
+    "description": null
+  },
+  "usageDayTurns": "Turns",
+  "@usageDayTurns": {
+    "description": null
+  },
+  "usageDayToolCalls": "Tool calls",
+  "@usageDayToolCalls": {
+    "description": null
+  },
+  "usageDayModels": "By model",
+  "@usageDayModels": {
+    "description": null
+  },
+    "usageDayPrev": "Previous day",
+  "@usageDayPrev": {
+    "description": "Day detail sheet: step to previous day"
+  },
+  "usageDayNext": "Next day",
+  "@usageDayNext": {
+    "description": "Day detail sheet: step to next day"
+  },
+"usageDayNoUsage": "No usage this day",
+  "@usageDayNoUsage": {
+    "description": null
+  },
+  "usageDaysCount": "{count} d",
+  "@usageDaysCount": {
+    "description": null,
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "usageDurH": "h",
+  "@usageDurH": {
+    "description": null
+  },
+  "usageDurM": "m",
+  "@usageDurM": {
+    "description": null
+  },
+  "usageDurS": "s",
+  "@usageDurS": {
+    "description": null
+  },
+  "usageLoadFailed": "Failed to load usage",
+  "@usageLoadFailed": {
+    "description": null
+  },
+  "usageServiceUnavailable": "Page services unavailable",
+  "@usageServiceUnavailable": {
+    "description": null
+  },
+  "usageDeviceNotReady": "Device not ready. Check the connection",
+  "@usageDeviceNotReady": {
+    "description": null
+  },
+  "toolboxTitle": "Toolbox",
+  "@toolboxTitle": {
+    "description": "Title of side panel toolbox drawer"
+  },
+  "toolboxSubtitle": "Extensions & Tools",
+  "@toolboxSubtitle": {
+    "description": "Subtitle of side panel toolbox drawer"
+  },
+  "toolboxAutomation": "Automation",
+  "@toolboxAutomation": {
+    "description": "Toolbox card title for automation"
+  },
+  "toolboxAutomationDesc": "Scheduled tasks & dispatch",
+  "@toolboxAutomationDesc": {
+    "description": "Toolbox card description for automation"
+  },
+  "toolboxClaim": "Perks Center",
+  "@toolboxClaim": {
+    "description": "Toolbox card title for claim"
+  },
+  "toolboxClaimDesc": "Event rewards & tokens",
+  "@toolboxClaimDesc": {
+    "description": "Toolbox card description for claim"
+  },
+  "toolboxClaimReady": "Available",
+  "@toolboxClaimReady": {
+    "description": "Badge when claims are ready"
+  },
+  "toolboxQueued": "{count} queued",
+  "@toolboxQueued": {
+    "description": "Queued automation count badge",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "toolboxUsage": "Usage",
+  "@toolboxUsage": {
+    "description": "Toolbox card title for usage stats"
+  },
+  "toolboxUsageDesc": "App usage stats",
+  "@toolboxUsageDesc": {
+    "description": "Toolbox card description for usage stats"
+  },
+  "toolboxMoreComing": "More Tools",
+  "@toolboxMoreComing": {
+    "description": "Placeholder title for future expansion cards"
+  },
+  "toolboxMoreComingDesc": "Coming soon",
+  "@toolboxMoreComingDesc": {
+    "description": "Placeholder description for future expansion cards"
+  }
 }

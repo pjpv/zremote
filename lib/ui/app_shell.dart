@@ -90,23 +90,12 @@ class _AppShellState extends ConsumerState<AppShell> {
       const ManagePage(),
     ];
 
-    final onManage = active >= devices.length;
-
-    return PopScope(
-      canPop: onManage,
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop) return;
-        ref
-            .read(activeTabProvider.notifier)
-            .set(ref.read(deviceListProvider).length);
-      },
-      child: Scaffold(
-        body: SafeArea(
-          top: false,
-          child: IndexedStack(
-            index: active.clamp(0, children.length - 1),
-            children: children,
-          ),
+    return Scaffold(
+      body: SafeArea(
+        top: false,
+        child: IndexedStack(
+          index: active.clamp(0, children.length - 1),
+          children: children,
         ),
       ),
     );

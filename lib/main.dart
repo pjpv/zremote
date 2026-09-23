@@ -8,10 +8,13 @@ import 'services/device_store.dart';
 import 'services/notifier.dart';
 import 'state/keepalive.dart';
 import 'state/locale.dart';
+import 'state/theme_mode.dart';
 import 'state/session_pool.dart';
 import 'theme.dart';
 import 'state/app_lifecycle.dart';
 import 'ui/app_shell.dart';
+import 'ui/bevel_card.dart';
+import 'ui/showcase_bits.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +23,7 @@ Future<void> main() async {
   final initialLocale = await store.localeSetting();
   final initialBiometric = await store.biometricEnabled();
   final initialKeepAlive = await store.keepAliveEnabled();
+  final initialThemeMode = await store.themeModeSetting();
   runApp(
     ProviderScope(
       overrides: [
@@ -31,6 +35,9 @@ Future<void> main() async {
         ),
         keepAliveEnabledProvider.overrideWith(
           () => KeepAliveEnabledNotifier(initial: initialKeepAlive),
+        ),
+        themeModeSettingProvider.overrideWith(
+          () => ThemeModeSettingNotifier(initial: initialThemeMode),
         ),
       ],
       child: const ZRemoteApp(),
@@ -44,10 +51,13 @@ class ZRemoteApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final setting = ref.watch(localeSettingProvider);
+    final themeSetting = ref.watch(themeModeSettingProvider);
     return MaterialApp(
       title: 'ZRemote',
       debugShowCheckedModeBanner: false,
-      theme: ZT.theme(),
+      theme: ZT.theme(Brightness.light),
+      darkTheme: ZT.theme(Brightness.dark),
+      themeMode: resolveThemeMode(themeSetting),
       locale: setting == kLocaleSystem ? null : Locale(setting),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
@@ -63,6 +73,7 @@ class BiometricGate extends ConsumerStatefulWidget {
     required this.child,
     this.relockAfter = const Duration(seconds: 10),
     this.authenticate = _defaultAuthenticate,
+    this.haloAnimated = true,
   });
 
   final Widget child;
@@ -70,6 +81,8 @@ class BiometricGate extends ConsumerStatefulWidget {
   final Duration relockAfter;
 
   final Future<bool> Function(String reason) authenticate;
+
+  final bool haloAnimated;
 
   static Future<bool> _defaultAuthenticate(String reason) =>
       BiometricService.instance.authenticate(reason);
@@ -178,7 +191,7 @@ class _BiometricGateState extends ConsumerState<BiometricGate>
             child: BlockSemantics(
               blocking: true,
               child: Scaffold(
-                backgroundColor: ZT.bg,
+                backgroundColor: context.zt.bg,
                 body: SafeArea(
                   child: LayoutBuilder(
                     builder: (context, viewport) => SingleChildScrollView(
@@ -197,35 +210,102 @@ class _BiometricGateState extends ConsumerState<BiometricGate>
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Image.asset(
-                                    'assets/brand/mark.png',
-                                    width: 72,
-                                    height: 72,
-                                  ),
-                                  const SizedBox(height: 20),
-                                  const Text(
-                                    'ZREMOTE',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: 6,
-                                      color: ZT.textLo,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
+                                  _SenseHalo(animated: widget.haloAnimated),
+                                  const SizedBox(height: 24),
                                   Text(
                                     l10n.lockTitle,
-                                    style: const TextStyle(
-                                      fontSize: 24,
+                                    style: TextStyle(
+                                      fontSize: 20,
                                       fontWeight: FontWeight.w700,
-                                      color: ZT.textHi,
+                                      letterSpacing: -0.4,
+                                      color: context.zt.textHi,
                                     ),
                                   ),
-                                  const SizedBox(height: 28),
-                                  FilledButton.icon(
-                                    onPressed: _unlock,
-                                    icon: const Icon(Icons.lock_open, size: 18),
-                                    label: Text(l10n.unlockButton),
+                                  const SizedBox(height: 30),
+                                  BevelCard(
+                                    onTap: _unlock,
+                                    margin: EdgeInsets.zero,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 18,
+                                      vertical: 14,
+                                    ),
+                                    child: ConstrainedBox(
+                                      constraints: const BoxConstraints(
+                                        minHeight: 36,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 40,
+                                            height: 40,
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              color: context.zt.accentSubtle,
+                                            ),
+                                            child: Icon(
+                                              Icons.fingerprint,
+                                              size: 26,
+                                              color: context.zt.accent,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 14),
+                                          Expanded(
+                                            child: Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  l10n.lockActionPrimary,
+                                                  style: TextStyle(
+                                                    fontSize: 15,
+                                                    fontWeight:
+                                                        FontWeight.w600,
+                                                    color: context.zt.textHi,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  l10n.lockActionFallback,
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: context.zt.textLo,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          Icon(
+                                            Icons.chevron_right,
+                                            color: context.zt.textLo,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 36),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.shield_outlined,
+                                        size: 12,
+                                        color: context.zt.textTertiary,
+                                      ),
+                                      const SizedBox(width: 5),
+                                      Text(
+                                        l10n.lockFooter,
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: context.zt.textTertiary,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -240,6 +320,103 @@ class _BiometricGateState extends ConsumerState<BiometricGate>
             ),
           ),
       ],
+    );
+  }
+}
+
+class _SenseHalo extends StatefulWidget {
+  const _SenseHalo({required this.animated});
+
+  final bool animated;
+
+  @override
+  State<_SenseHalo> createState() => _SenseHaloState();
+}
+
+class _SenseHaloState extends State<_SenseHalo>
+    with SingleTickerProviderStateMixin {
+  AnimationController? _breath;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.animated) {
+      _breath = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 2400),
+      )..repeat(reverse: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _breath?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final zt = context.zt;
+    final glow = IgnorePointer(
+      child: Container(
+        width: 150,
+        height: 150,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            colors: [
+              zt.accent.withValues(alpha: 0.13),
+              zt.accent.withValues(alpha: 0.0),
+            ],
+          ),
+        ),
+      ),
+    );
+    final ring = CustomPaint(
+      size: const Size(130, 130),
+      painter: ZrDashedBorderPainter(
+        color: zt.accent.withValues(alpha: 0.4),
+        radius: 65,
+        strokeWidth: 1.5,
+        dash: 6,
+        gap: 5,
+      ),
+    );
+    final iconBox = Container(
+      width: 68,
+      height: 68,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        color: zt.surfaceHi,
+        border: Border.all(color: zt.hairline, width: 0.8),
+      ),
+      child: Center(
+        child: Image.asset('assets/brand/mark.png', width: 42, height: 42),
+      ),
+    );
+    final controller = _breath;
+    return SizedBox(
+      width: 150,
+      height: 150,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          glow,
+          if (controller == null)
+            ring
+          else
+            ScaleTransition(
+              scale: Tween<double>(begin: 1.0, end: 1.06).animate(
+                CurvedAnimation(
+                  parent: controller,
+                  curve: Curves.easeInOut,
+                ),
+              ),
+              child: ring,
+            ),
+          iconBox,
+        ],
+      ),
     );
   }
 }

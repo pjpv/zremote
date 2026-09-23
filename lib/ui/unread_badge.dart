@@ -17,7 +17,7 @@ class UnreadBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
-        color: alert ? ZT.danger : ZT.accent,
+        color: alert ? context.zt.danger : context.zt.accent,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
@@ -26,7 +26,7 @@ class UnreadBadge extends StatelessWidget {
           fontSize: 11,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.5,
-          color: alert ? Colors.white : ZT.onAccent,
+          color: alert ? Colors.white : context.zt.onAccent,
         ),
       ),
     );

@@ -10,15 +10,14 @@ class SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 10, 4, 8),
+      padding: const EdgeInsets.fromLTRB(2, 8, 2, 4),
       child: Text(
         text,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1,
-          color: ZT.textLo,
-        ),
+        style: zrMono(
+          fontSize: 11,
+          weight: FontWeight.w600,
+          color: context.zt.textLo,
+        ).copyWith(height: 1.1),
       ),
     );
   }

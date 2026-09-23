@@ -146,5 +146,14 @@ void main() {
       expect(script.contains("return 'async';"), isTrue);
       expect(script.contains('if (!tid) return false;'), isTrue);
     });
+
+    test('v4：精确命中优先 task-item-<tid>（官方 test-id 常量核对）', () {
+      final script = SessionJump.jumpScript('abc');
+      expect(script.contains("var want = 'task-item-' + tid;"), isTrue);
+      expect(script.contains('if (t === want) { hit = els[i]; break; }'), isTrue);
+      expect(script.contains('if (hit === null) hit = els[i];'), isTrue);
+      expect(script.contains('hit.scrollIntoView'), isTrue);
+      expect(script.contains('hit.click()'), isTrue);
+    });
   });
 }

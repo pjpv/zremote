@@ -52,6 +52,28 @@ void main() {
       );
     });
 
+    test('官方别名归一（3.14 ZCodeStreamEvent 词汇，前瞻加固）', () {
+      final a = EventParser.parseMessage(
+        '{"type":"task_complete","taskId":"t1"}',
+      );
+      expect(a, hasLength(1));
+      expect(a.first.type, 'completed');
+      expect(a.first.taskId, 't1');
+      expect(kNotifiableTypes.contains(a.first.type), isTrue);
+
+      final b = EventParser.parseMessage('{"event":"task_error"}');
+      expect(b, hasLength(1));
+      expect(b.first.type, 'error');
+
+      final c = EventParser.parseMessage(
+        '{"type":"permission_response","task_id":"x"}',
+      );
+      expect(c.first.type, 'permission_resolved');
+      expect(kNotifiableTypes.contains(c.first.type), isFalse);
+
+      expect(EventParser.parseMessage('{"type":"task_created"}'), isEmpty);
+    });
+
     test('非 JSON（SSE 原始帧与 HTML）被拒收', () {
       expect(EventParser.parseMessage('data: {"event":"completed"}'), isEmpty);
       expect(
@@ -96,20 +118,20 @@ void main() {
     });
   });
 
-  group('EventObserver.hookScript', () {
+  group('EventObserver.hookScriptFor(47832, ab12cd34)', () {
     test('幂等哨兵存在', () {
-      expect(EventObserver.hookScript.contains('__zrHooked'), isTrue);
+      expect(EventObserver.hookScriptFor(47832, 'ab12cd34').contains('__zrHooked'), isTrue);
     });
 
     test('上报走 zrEvents handler', () {
       expect(
-        EventObserver.hookScript.contains("post('zrEvents'"),
+        EventObserver.hookScriptFor(47832, 'ab12cd34').contains("post('zrEvents'"),
         isTrue,
       );
     });
 
     test('早桥队列（r8 根因修复）：桥未就绪缓存、就绪后按序冲刷', () {
-      final s = EventObserver.hookScript;
+      final s = EventObserver.hookScriptFor(47832, 'ab12cd34');
       expect(s.contains("addEventListener('flutterInAppWebViewPlatformReady'"),
           isTrue);
       expect(s.contains("post('zrViewState', b)"), isTrue);
@@ -121,14 +143,14 @@ void main() {
 
     test('EventSource 包装转发类静态量（CONNECTING/OPEN/CLOSED）', () {
       expect(
-        EventObserver.hookScript.contains(
+        EventObserver.hookScriptFor(47832, 'ab12cd34').contains(
           'Wrapped[statics[i]] = OrigES[statics[i]]',
         ),
         isTrue,
       );
       for (final s in const ['CONNECTING', 'OPEN', 'CLOSED']) {
         expect(
-          EventObserver.hookScript.contains("'$s'"),
+          EventObserver.hookScriptFor(47832, 'ab12cd34').contains("'$s'"),
           isTrue,
           reason: '静态量数组应包含 $s',
         );
@@ -137,19 +159,19 @@ void main() {
 
     test('content-length 体积预检存在（大响应不进内存）', () {
       expect(
-        EventObserver.hookScript.contains("res.headers.get('content-length')"),
+        EventObserver.hookScriptFor(47832, 'ab12cd34').contains("res.headers.get('content-length')"),
         isTrue,
       );
     });
 
     test('体积上限已常量化为 4MB：4194304 在案、旧值 262144 绝迹', () {
-      expect(EventObserver.hookScript.contains('4194304'), isTrue);
-      expect(EventObserver.hookScript.contains('262144'), isFalse);
+      expect(EventObserver.hookScriptFor(47832, 'ab12cd34').contains('4194304'), isTrue);
+      expect(EventObserver.hookScriptFor(47832, 'ab12cd34').contains('262144'), isFalse);
       expect(kMaxListenBytes, 4194304);
     });
 
     test('WebSocket 包装只监听 message 帧', () {
-      final s = EventObserver.hookScript;
+      final s = EventObserver.hookScriptFor(47832, 'ab12cd34');
       expect(s.contains('window.WebSocket = WSWrapped'), isTrue);
       expect(s.contains('WSWrapped.prototype = OrigWS.prototype'), isTrue);
       expect(
@@ -160,13 +182,13 @@ void main() {
     });
 
     test('体积预检对称：缺 messageBytes 的帧用 base64 长度估算兜底', () {
-      final s = EventObserver.hookScript;
+      final s = EventObserver.hookScriptFor(47832, 'ab12cd34');
       expect(s.contains('p.messageBytes != null'), isTrue);
       expect(s.contains('* 0.75'), isTrue);
     });
 
     test('分片计数去重：重复投递同一 fragmentIndex 不递增 got', () {
-      expect(EventObserver.hookScript.contains('in slot.parts'), isTrue);
+      expect(EventObserver.hookScriptFor(47832, 'ab12cd34').contains('in slot.parts'), isTrue);
     });
   });
 

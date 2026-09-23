@@ -3,7 +3,8 @@ import 'dart:convert';
 const int kMaxListenBytes = 4194304;
 
 abstract final class EventObserver {
-  static const String hookScript = '''
+  static String hookScriptFor(int dispatchPort, String dispatchToken) =>
+      '''
 (function() {
   if (window.__zrHooked) return;
   window.__zrHooked = true;
@@ -110,6 +111,9 @@ abstract final class EventObserver {
       try {
         var u = arguments[0], init = arguments[1];
         var url = typeof u === 'string' ? u : ((u && u.url) || '');
+        if (url.indexOf('http://127.0.0.1:') === 0) {
+          return origFetch.apply(this, arguments);
+        }
         var method = (init && init.method) || '';
         if (url.indexOf('/mobile-view-state') >= 0 &&
             String(method).toUpperCase() === 'POST') {
@@ -126,7 +130,7 @@ abstract final class EventObserver {
           var ct = (res.headers && res.headers.get)
               ? (res.headers.get('content-type') || '')
               : '';
-          if (/^(image|audio|video|font)\\//.test(ct)) return res;
+          if (/^(image|audio|video|font)[/]/.test(ct)) return res;
           var cl = (res.headers && res.headers.get)
               ? res.headers.get('content-length')
               : null;
@@ -171,16 +175,21 @@ abstract final class EventObserver {
           wsSend(JSON.stringify({s: 'closed', u: urlStr, c: ev && ev.code, r: (ev && ev.reason) || ''}));
         });
         ws.addEventListener('message', function(ev) {
+          try { zrPollRevive(); } catch (e9) {}
           try {
             var d = ev.data;
             if (typeof d === 'string') {
               sendWithDecode(d);
             } else if (d && typeof d.size === 'number') {
               if (d.size > 0 && d.size < $kMaxListenBytes) {
-                d.text().then(function(t) { sendWithDecode(t); }).catch(function() {});
+                d.text().then(function(t) {
+                  sendWithDecode(t);
+                }).catch(function() {});
               }
             } else if (d && d.byteLength > 0 && d.byteLength < $kMaxListenBytes) {
-              try { sendWithDecode(new TextDecoder('utf-8', {fatal: false}).decode(d)); } catch (e2) {}
+              try {
+                sendWithDecode(new TextDecoder('utf-8', {fatal: false}).decode(d));
+              } catch (e2) {}
             }
           } catch (e) {}
         });
@@ -194,6 +203,247 @@ abstract final class EventObserver {
     }
     window.WebSocket = WSWrapped;
   }
+  var zrSvc = null;
+  var zrFindServices = function() {
+    try {
+      if (zrSvc) {
+        var s = zrSvc.zcodeAgentService;
+        if (s && typeof s.listAllAutomations === 'function') return zrSvc;
+        zrSvc = null;
+      }
+      var all = document.querySelectorAll('*');
+      var fiber = null;
+      for (var i = 0; i < all.length && !fiber; i++) {
+        var ks = Object.keys(all[i]);
+        for (var j2 = 0; j2 < ks.length; j2++) {
+          if (ks[j2].lastIndexOf('__reactFiber', 0) === 0) { fiber = all[i][ks[j2]]; break; }
+        }
+      }
+      if (!fiber) return null;
+      while (fiber.return) fiber = fiber.return;
+      var seen = new Set();
+      var found = null;
+      var check = function(o) {
+        try {
+          if (!o || typeof o !== 'object' || seen.has(o)) return false;
+          seen.add(o);
+          var ks2 = Object.keys(o);
+          var c = 0;
+          var hasAg = false;
+          var hasOp = false;
+          for (var q = 0; q < ks2.length; q++) {
+            var k = ks2[q];
+            if (k.length > 7 && k.substring(k.length - 7) === 'Service') c++;
+            if (k === 'zcodeAgentService') hasAg = true;
+            if (k === 'offPeakTaskService') hasOp = true;
+          }
+          if (c >= 10 && hasAg && hasOp) { found = o; zrSvc = o; return true; }
+          return false;
+        } catch (e) { return false; }
+      };
+      var walk = function(f, depth) {
+        if (!f || found || depth > 20000) return;
+        try {
+          var st = f.memoizedState;
+          var n = 0;
+          while (st && typeof st === 'object' && n < 40) {
+            if (st.memoizedState !== undefined && check(st.memoizedState)) return;
+            st = st.next;
+            n++;
+          }
+          if (f.stateNode && typeof f.stateNode === 'object' && !(f.stateNode instanceof Node)) {
+            if (check(f.stateNode)) return;
+          }
+          var props = f.memoizedProps;
+          if (props && typeof props === 'object' && !Array.isArray(props)) {
+            var pk = Object.keys(props);
+            for (var p = 0; p < pk.length && p < 30; p++) {
+              var v = props[pk[p]];
+              if (v && typeof v === 'object') {
+                if (check(v)) return;
+                if (v.value && check(v.value)) return;
+                if (v.current && check(v.current)) return;
+              }
+            }
+          }
+        } catch (e) {}
+        walk(f.child, depth + 1);
+        if (!found) walk(f.sibling, depth + 1);
+      };
+      walk(fiber, 0);
+      return found;
+    } catch (e) { return null; }
+  };
+  var zrSeen = {};
+  function zrProbeRun(id, method, argsB64) {
+    try {
+      if (method !== 'dump') { post('zrSvcResult', JSON.stringify({ i: id, ok: false, e: 'no-method' })); return; }
+      var c = zrFindServices();
+      if (!c) { post('zrSvcResult', JSON.stringify({ i: id, ok: false, e: 'no-services' })); return; }
+      var list = [];
+      if (argsB64) {
+        try {
+          var pb = atob(argsB64);
+          var pbytes = new Uint8Array(pb.length);
+          for (var pi = 0; pi < pb.length; pi++) pbytes[pi] = pb.charCodeAt(pi);
+          var pa = JSON.parse(new TextDecoder('utf-8', {fatal: false}).decode(pbytes));
+          if (Array.isArray(pa) && pa.length === 1 && Array.isArray(pa[0])) list = pa[0];
+        } catch (e2) {}
+      }
+      var checks = {};
+      for (var ci = 0; ci < list.length; ci++) {
+        var item = list[ci];
+        if (!item || typeof item !== 'object') continue;
+        var skey = item.s;
+        var ms = item.m;
+        if (typeof skey !== 'string' || !ms || !Array.isArray(ms)) continue;
+        var svc = c[skey];
+        for (var mi = 0; mi < ms.length; mi++) {
+          if (typeof ms[mi] !== 'string') continue;
+          checks[skey + '.' + ms[mi]] = svc ? (typeof svc[ms[mi]] === 'function') : 'no-svc';
+        }
+      }
+      post('zrSvcResult', JSON.stringify({ i: id, ok: true, r: JSON.stringify({ keys: Object.keys(c), checks: checks }) }));
+    } catch (e) { post('zrSvcResult', JSON.stringify({ i: id, ok: false, e: 'probe-err' })); }
+  }
+  var zrCapBusy = false;
+  function zrCaptchaRun(id, argsB64) {
+    try {
+      var cfg = {};
+      if (argsB64) {
+        try {
+          var cb = atob(argsB64);
+          var cbytes = new Uint8Array(cb.length);
+          for (var ci = 0; ci < cb.length; ci++) cbytes[ci] = cb.charCodeAt(ci);
+          var ca = JSON.parse(new TextDecoder('utf-8', {fatal: false}).decode(cbytes));
+          if (ca && typeof ca === 'object' && ca.length) cfg = ca[0] || {};
+        } catch (e0) {}
+      }
+      if (zrCapBusy) { post('zrSvcResult', JSON.stringify({ i: id, ok: false,
+        e: 'captcha-busy' })); return 'busy'; }
+      zrCapBusy = true;
+      var timeoutMs = (typeof cfg.timeoutMs === 'number' && cfg.timeoutMs > 0) ? cfg.timeoutMs : 8000;
+      var settle = false;
+      var finish = function(payload) {
+        if (settle) return; settle = true; zrCapBusy = false;
+        post('zrSvcResult', JSON.stringify({ i: id, ok: true,
+          r: JSON.stringify(payload) }));
+      };
+      var run = function() {
+        try {
+          window.AliyunCaptchaConfig = { region: cfg.region || 'cn', prefix: cfg.prefix || '' };
+          if (!document.getElementById('zr-cap-holder')) {
+            var h = document.createElement('div'); h.id = 'zr-cap-holder';
+            var b = document.createElement('button'); b.id = 'zr-cap-btn';
+            b.style.display = 'none';
+            document.body.appendChild(h); document.body.appendChild(b);
+          }
+          window.initAliyunCaptcha({
+            SceneId: cfg.sceneId || '',
+            mode: 'popup',
+            language: 'zh-CN',
+            showErrorTip: false,
+            element: '#zr-cap-holder',
+            button: '#zr-cap-btn',
+            getInstance: function(i) {
+              try { if (i && typeof i.startTracelessVerification === 'function') i.startTracelessVerification();
+              else finish({ ok: false, reason: 'interactive-required' }); } catch (e1) {
+                finish({ ok: false, reason: 'interactive-required' }); }
+            },
+            success: function(p) {
+              var v = (typeof p === 'string') ? p : (p && p.captchaVerifyParam);
+              finish(v ? { ok: true, param: v } : { ok: false, reason: 'no-param' });
+            },
+            fail: function() { finish({ ok: false, reason: 'interactive-required' }); },
+            onError: function() { finish({ ok: false, reason: 'captcha-error' }); },
+          });
+          setTimeout(function() { finish({ ok: false, reason: 'timeout' }); }, timeoutMs);
+        } catch (e2) { finish({ ok: false, reason: 'init-failed' }); }
+      };
+      if (typeof window.initAliyunCaptcha === 'function') { run(); return 'queued'; }
+      var s = document.createElement('script');
+      s.src = 'https://o.alicdn.com/captcha-frontend/aliyunCaptcha/AliyunCaptcha.js';
+      s.onload = run;
+      s.onerror = function() { finish({ ok: false, reason: 'sdk-load-failed' }); };
+      document.head.appendChild(s);
+      return 'queued';
+    } catch (e) { zrCapBusy = false; return 'err'; }
+  }
+  window.__zrSvcCall = function(id, svcKey, method, argsB64) {
+    try {
+      if (zrSeen[id]) return 'dup';
+      if (Object.keys(zrSeen).length > 2000) zrSeen = {};
+      zrSeen[id] = 1;
+      if (svcKey === '__zrProbe') { zrProbeRun(id, method, argsB64); return 'queued'; }
+      if (svcKey === '__zrCaptcha') { zrCaptchaRun(id, argsB64); return 'queued'; }
+      var c = zrFindServices();
+      if (!c) { post('zrSvcResult', JSON.stringify({ i: id, ok: false, e: 'no-services' })); return 'queued'; }
+      var svc = c[svcKey];
+      if (!svc || typeof svc[method] !== 'function') { post('zrSvcResult', JSON.stringify({ i: id, ok: false, e: 'no-method' })); return 'queued'; }
+      var args = [];
+      if (argsB64) {
+        try {
+          var ab = atob(argsB64);
+          var abytes = new Uint8Array(ab.length);
+          for (var ai = 0; ai < ab.length; ai++) abytes[ai] = ab.charCodeAt(ai);
+          var a = JSON.parse(new TextDecoder('utf-8', {fatal: false}).decode(abytes));
+          if (typeof a === 'object' && a && typeof a.length === 'number') args = a;
+          else args = [a];
+        } catch (e2) {}
+      }
+      Promise.resolve(svc[method].apply(svc, args)).then(function(r) {
+        var out;
+        try { out = JSON.stringify(r); } catch (e3) { out = null; }
+        if (typeof out === 'string' && out.length > $kMaxListenBytes) out = out.substring(0, $kMaxListenBytes);
+        post('zrSvcResult', JSON.stringify({ i: id, ok: true, r: out === null ? undefined : out }));
+      }, function(err) {
+        var msg = 'err';
+        try { msg = String(err && err.message ? err.message : err); } catch (e4) {}
+        if (msg.length > 500) msg = msg.substring(0, 500);
+        post('zrSvcResult', JSON.stringify({ i: id, ok: false, e: msg }));
+      });
+      return 'queued';
+    } catch (e) { return 'err'; }
+  };
+  var zrPollBusy = false;
+  var zrPollAt = 0;
+  function zrPollStart() {
+    if (zrPollBusy) return;
+    zrPollBusy = true;
+    zrPollAt = Date.now();
+    fetch('http://127.0.0.1:' + $dispatchPort + '/zrp/' + '$dispatchToken', { mode: 'cors' })
+      .then(function(r) {
+        if (!r.ok) throw new Error('http ' + r.status);
+        return r.json();
+      })
+      .then(function(j) {
+        zrPollBusy = false;
+        try {
+          if (j && j.c) {
+            for (var pk = 0; pk < j.c.length; pk++) {
+              var x = j.c[pk];
+              window.__zrSvcCall(x.i, x.s, x.m, x.a);
+            }
+          }
+        } catch (e5) {}
+        zrPollStart();
+      })
+      .catch(function() {
+        zrPollBusy = false;
+        setTimeout(function() { zrPollStart(); }, 1500);
+      });
+  }
+  function zrPollRevive() {
+    if (!zrPollBusy) {
+      zrPollStart();
+      return;
+    }
+    if (Date.now() - zrPollAt > 45000) {
+      zrPollBusy = false;
+      zrPollStart();
+    }
+  }
+  zrPollStart();
 })();
 ''';
 }
@@ -217,6 +467,13 @@ const Set<String> kNotifiableTypes = {
   'elicitation_request',
   'completed',
   'error',
+};
+
+const Map<String, String> kEventTypeAliases = {
+  'task_complete': 'completed',
+  'task_error': 'error',
+  'permission_response': 'permission_resolved',
+  'elicitation_response': 'elicitation_resolved',
 };
 
 class ObservedEvent {
@@ -273,7 +530,10 @@ abstract final class EventParser {
   static String? _eventTypeOf(Map<dynamic, dynamic> node) {
     for (final key in const ['event', 'type']) {
       final value = node[key];
-      if (value is String && kKnownEventTypes.contains(value)) return value;
+      if (value is! String) continue;
+      if (kKnownEventTypes.contains(value)) return value;
+      final aliased = kEventTypeAliases[value];
+      if (aliased != null) return aliased;
     }
     return null;
   }
@@ -358,20 +618,20 @@ class SessionState {
 
   @override
   int get hashCode => Object.hashAll([
-        sessionId,
-        title,
-        phase,
-        sessionEnded,
-        permissionCount,
-        userInputCount,
-        interactionKind,
-        toolName,
-        description,
-        lastActivityAt,
-        createdAt,
-        workspace,
-        pinned,
-      ]);
+    sessionId,
+    title,
+    phase,
+    sessionEnded,
+    permissionCount,
+    userInputCount,
+    interactionKind,
+    toolName,
+    description,
+    lastActivityAt,
+    createdAt,
+    workspace,
+    pinned,
+  ]);
 }
 
 abstract final class SessionStateExtractor {
@@ -812,23 +1072,160 @@ abstract final class TaskIndexExtractor {
   };
 }
 
+abstract final class CodingPlanSignalExtractor {
+  static const int _maxDepth = 6;
+
+  static String? parseRoot(dynamic root) => _walk(root, 0);
+
+  static String? _walk(dynamic node, int depth) {
+    if (depth > _maxDepth || node is! Map) return null;
+    final providers = node['providers'];
+    if (providers is List) {
+      for (final provider in providers) {
+        if (provider is! Map) continue;
+        if (provider['providerId'] != 'builtin:bigmodel-coding-plan') continue;
+        final apiKey = provider['apiKey'];
+        if (apiKey is Map && apiKey.isNotEmpty) {
+          return 'builtin:bigmodel-coding-plan';
+        }
+      }
+    }
+    String? found;
+    for (final value in node.values) {
+      found = _walk(value, depth + 1);
+      if (found != null) return found;
+    }
+    return null;
+  }
+}
+
+abstract final class OffPeakTaskExtractor {
+  static const int _maxDepth = 6;
+
+  static ({List<Map<String, dynamic>> tasks, int queued})? parseRoot(
+    dynamic root,
+  ) {
+    final tasks = <Map<String, dynamic>>[];
+    _walk(root, 0, tasks);
+    if (tasks.isEmpty) return null;
+    var queued = 0;
+    for (final task in tasks) {
+      if (task['status'] == 'queued') queued++;
+    }
+    return (tasks: tasks, queued: queued);
+  }
+
+  static void _walk(dynamic node, int depth, List<Map<String, dynamic>> out) {
+    if (depth > _maxDepth || node == null) return;
+    if (node is Map) {
+      if (node['offPeakTaskId'] is String &&
+          (node['offPeakTaskId'] as String).isNotEmpty) {
+        out.add(Map<String, dynamic>.from(node));
+      }
+      for (final value in node.values) {
+        _walk(value, depth + 1, out);
+      }
+    } else if (node is List) {
+      for (final value in node) {
+        _walk(value, depth + 1, out);
+      }
+    }
+  }
+}
+
+abstract final class AutomationExtractor {
+  static const int _maxDepth = 6;
+
+  static List<Map<String, dynamic>>? parseRoot(dynamic root) {
+    final automations = <Map<String, dynamic>>[];
+    _walk(root, 0, automations);
+    return automations.isEmpty ? null : automations;
+  }
+
+  static void _walk(dynamic node, int depth, List<Map<String, dynamic>> out) {
+    if (depth > _maxDepth || node == null) return;
+    if (node is Map) {
+      if (node['automationId'] is String &&
+          (node['automationId'] as String).isNotEmpty &&
+          node['runId'] == null) {
+        out.add(Map<String, dynamic>.from(node));
+      }
+      for (final value in node.values) {
+        _walk(value, depth + 1, out);
+      }
+    } else if (node is List) {
+      for (final value in node) {
+        _walk(value, depth + 1, out);
+      }
+    }
+  }
+}
+
+abstract final class AutomationFeed {
+  static ({List<Map<String, dynamic>> tasks, bool snapshot}) offPeakOf(
+    List<dynamic> inputs,
+  ) {
+    final tasks = <Map<String, dynamic>>[];
+    for (final input in inputs) {
+      final parsed = OffPeakTaskExtractor.parseRoot(input);
+      if (parsed != null) tasks.addAll(parsed.tasks);
+    }
+    return (tasks: tasks, snapshot: tasks.length >= 2);
+  }
+
+  static ({List<Map<String, dynamic>> automations, bool snapshot})
+  automationsOf(List<dynamic> inputs) {
+    final automations = <Map<String, dynamic>>[];
+    for (final input in inputs) {
+      final parsed = AutomationExtractor.parseRoot(input);
+      if (parsed != null) automations.addAll(parsed);
+    }
+    return (automations: automations, snapshot: automations.length >= 2);
+  }
+}
+
+abstract final class RecentProjectsExtractor {
+  static const int _maxDepth = 4;
+
+  static List<String>? parseRoot(dynamic root) {
+    final found = _walk(root, 0);
+    return found;
+  }
+
+  static List<String>? _walk(dynamic node, int depth) {
+    if (depth > _maxDepth || node is! Map) return null;
+    final value = node['recentProjects'];
+    if (value is List && value.isNotEmpty) {
+      final projects = <String>[];
+      for (final item in value) {
+        if (item is String && item.isNotEmpty) projects.add(item);
+      }
+      if (projects.isNotEmpty) return projects;
+    }
+    for (final child in node.values) {
+      final found = _walk(child, depth + 1);
+      if (found != null) return found;
+    }
+    return null;
+  }
+}
+
 class StateDiffer {
   StateDiffer();
 
   final Map<String, SessionState> _prev = {};
 
-  List<ObservedEvent> apply(List<SessionState> incoming, {List<String> removed = const []}) {
+  List<ObservedEvent> apply(
+    List<SessionState> incoming, {
+    List<String> removed = const [],
+  }) {
     final events = <ObservedEvent>[];
     for (final id in removed) {
       final gone = _prev.remove(id);
       if (gone != null &&
           (gone.permissionCount > 0 || gone.userInputCount > 0)) {
         events.add(
-          ObservedEvent(
-            type: 'resolved',
-            taskId: id,
-            sessionTitle: gone.title,
-          ),
+          ObservedEvent(type: 'resolved', taskId: id, sessionTitle: gone.title),
         );
       }
     }

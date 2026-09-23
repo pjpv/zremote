@@ -19,16 +19,20 @@ abstract final class SessionJump {
   var backTries = 0;
   var find = function() {
     var els = document.querySelectorAll('[data-testid]');
+    var want = 'task-item-' + tid;
+    var hit = null;
     for (var i = 0; i < els.length; i++) {
       var t = els[i].getAttribute('data-testid') || '';
       if (t.indexOf(tid) === -1) continue;
       if (els[i].getClientRects().length === 0) continue;
       if (!els[i].isConnected) continue;
-      els[i].scrollIntoView({block: 'center'});
-      els[i].click();
-      return true;
+      if (t === want) { hit = els[i]; break; }
+      if (hit === null) hit = els[i];
     }
-    return false;
+    if (!hit) return false;
+    hit.scrollIntoView({block: 'center'});
+    hit.click();
+    return true;
   };
   var matchWs = function(label) {
     if (!ws || !label) return false;

@@ -24,6 +24,7 @@ dependencies:
   uuid: ^4.6.0
   flutter_local_notifications: ^22.3.0
   url_launcher: ^6.3.2
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
@@ -39,3 +40,12 @@ flutter:
 
   assets:
     - assets/brand/mark.png
+    - assets/fonts/OFL.txt
+
+  fonts:
+    - family: JetBrainsMono
+      fonts:
+        - asset: assets/fonts/JetBrainsMono-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/JetBrainsMono-Medium.ttf
+          weight: 500

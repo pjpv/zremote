@@ -106,9 +106,7 @@ void main() {
     expect(yPinnedRow, lessThan(yToday));
   });
 
-  testWidgets('状态胶囊：running→运行中、completedSuccess→已完成、error→失败', (
-    tester,
-  ) async {
+  testWidgets('状态胶囊：running→运行中、completedSuccess→已完成、error→失败', (tester) async {
     await pumpPanel(tester, [
       sess('s1', title: '任务甲', phase: 'running'),
       sess('s2', title: '任务乙', phase: 'completedSuccess'),
@@ -117,6 +115,21 @@ void main() {
     expect(find.text('运行中'), findsOneWidget);
     expect(find.text('已完成'), findsOneWidget);
     expect(find.text('失败'), findsOneWidget);
+
+    Color pillBorder(String label) {
+      final container = tester.widget<Container>(
+        find
+            .ancestor(of: find.text(label), matching: find.byType(Container))
+            .first,
+      );
+      final border = (container.decoration! as BoxDecoration).border as Border;
+      return border.top.color;
+    }
+
+    final zt = ZT.light;
+    expect(pillBorder('运行中'), zt.live.withValues(alpha: 0.30));
+    expect(pillBorder('已完成'), zt.textLo.withValues(alpha: 0.30));
+    expect(pillBorder('失败'), zt.danger.withValues(alpha: 0.30));
   });
 
   testWidgets('未知/缺 phase 不渲染状态胶囊（Web 对未知态不出）', (tester) async {
@@ -129,24 +142,20 @@ void main() {
     expect(find.text('失败'), findsNothing);
   });
 
-  testWidgets('蓝点：仅 activeSessionId 匹配行是 accent 实心，不匹配行透明占位', (
-    tester,
-  ) async {
-    await pumpPanel(
-      tester,
-      [
-        sess('s1', title: '任务A', phase: 'running'),
-        sess('s2', title: '任务B', phase: 'running'),
-      ],
-      activeSessionId: 's1',
-    );
+  testWidgets('蓝点：仅 activeSessionId 匹配行是 accent 实心，不匹配行透明占位', (tester) async {
+    await pumpPanel(tester, [
+      sess('s1', title: '任务A', phase: 'running'),
+      sess('s2', title: '任务B', phase: 'running'),
+    ], activeSessionId: 's1');
     Color dotColor(String id) =>
-        (tester.widget<Container>(
-                  find.byKey(Key('session-active-dot-$id')),
-                ).decoration
+        (tester
+                    .widget<Container>(
+                      find.byKey(Key('session-active-dot-$id')),
+                    )
+                    .decoration
                 as BoxDecoration)
             .color!;
-    expect(dotColor('s1'), ZT.accent);
+    expect(dotColor('s1'), ZT.light.accent);
     expect(dotColor('s2'), Colors.transparent);
   });
 
@@ -185,7 +194,7 @@ void main() {
       sess('s1', title: '任务甲', phase: 'running', permissionCount: 2),
       sess('s2', title: '任务乙', phase: 'running', userInputCount: 1),
     ]);
-    expect(find.text('2'), findsOneWidget);
+    expect(find.text('2'), findsNWidgets(2));
     expect(find.text('1'), findsOneWidget);
   });
 
@@ -236,7 +245,9 @@ void main() {
     expect(find.text('会话-0'), findsOneWidget);
   });
 
-  testWidgets('抽屉真实嵌套（外层 Column(min) 经 Flexible 持有面板）下 120 行不溢出', (tester) async {
+  testWidgets('抽屉真实嵌套（外层 Column(min) 经 Flexible 持有面板）下 120 行不溢出', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         locale: const Locale('zh'),
@@ -258,9 +269,7 @@ void main() {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Flexible(
-                  child: SessionPanelSheet(sessions: manySessions(120)),
-                ),
+                Flexible(child: SessionPanelSheet(sessions: manySessions(120))),
               ],
             ),
           ),

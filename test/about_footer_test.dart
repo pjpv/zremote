@@ -20,13 +20,16 @@ void main() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(keepaliveChannel, (call) async => false);
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(packageInfoChannel, (call) async => {
-              'appName': 'ZRemote',
-              'packageName': 'com.pjpv.zremote',
-              'version': '1.4.0',
-              'buildNumber': '7',
-              'buildSignature': '',
-            });
+        .setMockMethodCallHandler(
+          packageInfoChannel,
+          (call) async => {
+            'appName': 'ZRemote',
+            'packageName': 'com.pjpv.zremote',
+            'version': '1.4.0',
+            'buildNumber': '7',
+            'buildSignature': '',
+          },
+        );
     addTearDown(() {
       for (final channel in [
         keepaliveChannel,
@@ -61,7 +64,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final repoLink = find.text('github.com/pjpv/zremote');
+    final repoLink = find.textContaining('github.com/pjpv/zremote');
     await tester.tap(repoLink);
     await tester.pump();
 

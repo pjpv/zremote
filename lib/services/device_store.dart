@@ -112,6 +112,18 @@ class DeviceStore {
     await prefs.setString(_localeKey, value);
   }
 
+  static const _themeModeKey = 'zremote.themeMode';
+
+  Future<String> themeModeSetting() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_themeModeKey) ?? 'system';
+  }
+
+  Future<void> setThemeModeSetting(String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_themeModeKey, value);
+  }
+
   static const _lastDeviceKey = 'zremote.lastDevice';
 
   Future<String?> lastDeviceId() async {

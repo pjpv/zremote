@@ -140,12 +140,12 @@ void _replaceGroup() {
     });
   });
 
-  testWidgets('更换模式提示文案切换为「对准新的二维码」', (tester) async {
+  testWidgets('更换模式提示文案切换为「扫新二维码」', (tester) async {
     final a = _device('a', 'sid-a');
     await _pumpReplace(tester, [a], a);
     await tester.pumpAndSettle();
 
-    expect(find.text('对准电脑端新的远程控制二维码'), findsOneWidget);
+    expect(find.text('扫描电脑端生成的新二维码'), findsOneWidget);
   });
 
   testWidgets('扫到撞其他设备 sid 的码 → 拒绝更换（防重复接入），身份不动', (tester) async {

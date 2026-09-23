@@ -1,233 +1,1622 @@
 {
   "@@locale": "zh",
   "commonCancel": "取消",
-  "@commonCancel": {"description": "Dialog dismiss button"},
+  "@commonCancel": {
+    "description": "Dialog dismiss button"
+  },
   "commonSave": "保存",
-  "@commonSave": {"description": "Dialog confirm-save button"},
+  "@commonSave": {
+    "description": "Dialog confirm-save button"
+  },
   "commonGotIt": "知道了",
-  "@commonGotIt": {"description": "Acknowledge button in info dialogs"},
-
+  "@commonGotIt": {
+    "description": "Acknowledge button in info dialogs"
+  },
   "manageTitle": "设备管理",
-  "@manageTitle": {"description": "Manage page header"},
-  "devicesCount": "设备 · {count}",
-  "@devicesCount": {"description": "Device list section label", "placeholders": {"count": {"type": "int"}}},
+  "@manageTitle": {
+    "description": "Manage page header"
+  },
+  "devicesCount": "已绑定设备 ({count})",
+  "@devicesCount": {
+    "description": "Device list section label",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "importPasteTooltip": "粘贴链接导入",
-  "@importPasteTooltip": {"description": "FAB tooltip for paste-import"},
+  "@importPasteTooltip": {
+    "description": "FAB tooltip for paste-import"
+  },
   "importScanLabel": "扫码导入",
-  "@importScanLabel": {"description": "FAB label and empty-state button: import by scanning QR"},
+  "@importScanLabel": {
+    "description": "FAB label and empty-state button: import by scanning QR"
+  },
   "pasteDialogTitle": "粘贴控制链接",
-  "@pasteDialogTitle": {"description": "Paste-import dialog title"},
-  "importButton": "导入",
-  "@importButton": {"description": "Paste-import dialog confirm"},
+  "@pasteDialogTitle": {
+    "description": "Paste-import dialog title"
+  },
+  "importButton": "建立连接并导入",
+  "@importButton": {
+    "description": "Paste-import dialog confirm"
+  },
+  "pasteCharCount": "{used} / {max} 字符",
+  "@pasteCharCount": {
+    "description": "Paste-import field character counter",
+    "placeholders": {
+      "used": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
   "importFailed": "导入失败：链接需包含 sid 和 hash 参数",
-  "@importFailed": {"description": "Import error snackbar"},
+  "@importFailed": {
+    "description": "Import error snackbar"
+  },
   "manyDevicesTitle": "设备较多",
-  "@manyDevicesTitle": {"description": "6th device heads-up dialog title"},
+  "@manyDevicesTitle": {
+    "description": "6th device heads-up dialog title"
+  },
   "manyDevicesBody": "同时保活的 WebView 会话越多内存占用越高，6 台以上在低配手机上可能被系统回收后台。确定继续？",
-  "@manyDevicesBody": {"description": "6th device heads-up dialog body"},
+  "@manyDevicesBody": {
+    "description": "6th device heads-up dialog body"
+  },
   "emptyTitle": "还没有接入设备",
-  "@emptyTitle": {"description": "Empty state heading"},
-  "emptyBody": "在电脑端 ZCode 打开「移动端远程控制」，用二维码或控制链接把这台电脑接入。一次导入，长期有效。",
-  "@emptyBody": {"description": "Empty state explanation"},
+  "@emptyTitle": {
+    "description": "Empty state heading"
+  },
+  "emptyBody": "在电脑端 ZCode 打开「移动端远程控制」，扫码或粘贴链接接入。一次导入，长期有效。",
+  "@emptyBody": {
+    "description": "Empty state explanation"
+  },
   "unnamedDevice": "未命名设备",
-  "@unnamedDevice": {"description": "Fallback display name for a device imported without a name param"},
+  "@unnamedDevice": {
+    "description": "Fallback display name for a device imported without a name param"
+  },
   "deviceAddedOn": "于 {date} 接入",
-  "@deviceAddedOn": {"description": "Device card subtitle; date is preformatted M/d", "placeholders": {"date": {"type": "String"}}},
+  "@deviceAddedOn": {
+    "description": "Device card subtitle; date is preformatted M/d",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "menuOpenSession": "打开会话",
-  "@menuOpenSession": {"description": "Device card menu: open session"},
-  "menuRename": "重命名",
-  "@menuRename": {"description": "Device card menu: rename"},
-  "menuReplace": "更换链接",
-  "@menuReplace": {"description": "Device card menu: replace control link"},
-  "menuDelete": "删除",
-  "@menuDelete": {"description": "Device card menu and delete dialog button"},
+  "@menuOpenSession": {
+    "description": "Device card menu: open session"
+  },
+  "menuRename": "重命名设备",
+  "@menuRename": {
+    "description": "Device card menu: rename"
+  },
+  "menuReplace": "更换连接配置",
+  "@menuReplace": {
+    "description": "Device card menu: replace control link"
+  },
+  "menuDelete": "注销此设备",
+  "@menuDelete": {
+    "description": "Device card menu and delete dialog button"
+  },
   "replaceSheetTitle": "更换控制链接",
-  "@replaceSheetTitle": {"description": "Replace-link bottom sheet title"},
-  "replaceSheetBody": "链接失效时，扫新的二维码或粘贴新链接。设备名称与设置保留。",
-  "@replaceSheetBody": {"description": "Replace-link bottom sheet body"},
-  "replaceScan": "扫码更换",
-  "@replaceScan": {"description": "Replace-link sheet: scan action"},
-  "replacePaste": "粘贴链接更换",
-  "@replacePaste": {"description": "Replace-link sheet: paste action"},
+  "@replaceSheetTitle": {
+    "description": "Replace-link bottom sheet title"
+  },
+  "replaceSheetBody": "目标设备：{name} · 更换后设备名称与本地数据保持不变",
+  "@replaceSheetBody": {
+    "description": "Replace-link bottom sheet body",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "replaceScan": "扫码更换控制链接",
+  "@replaceScan": {
+    "description": "Replace-link sheet: scan action"
+  },
+  "replacePaste": "从剪贴板粘贴新链接更换",
+  "@replacePaste": {
+    "description": "Replace-link sheet: paste action"
+  },
   "replacePasteDialogTitle": "粘贴新的控制链接",
-  "@replacePasteDialogTitle": {"description": "Replace-link paste dialog title"},
+  "@replacePasteDialogTitle": {
+    "description": "Replace-link paste dialog title"
+  },
   "replaceDone": "已更换控制链接",
-  "@replaceDone": {"description": "Snackbar after a successful link replacement"},
+  "@replaceDone": {
+    "description": "Snackbar after a successful link replacement"
+  },
   "replaceDuplicate": "与「{name}」的链接冲突：同一台电脑不能重复接入",
-  "@replaceDuplicate": {"description": "Snackbar when the new link's sid collides with another device", "placeholders": {"name": {"type": "String"}}},
+  "@replaceDuplicate": {
+    "description": "Snackbar when the new link's sid collides with another device",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "renameDialogTitle": "重命名设备",
-  "@renameDialogTitle": {"description": "Rename dialog title"},
-  "deleteDeviceTitle": "删除 {name}？",
-  "@deleteDeviceTitle": {"description": "Delete confirmation dialog title", "placeholders": {"name": {"type": "String"}}},
-  "deleteDeviceBody": "仅移除本机保存的身份，不影响电脑端。需要时重新扫码即可。",
-  "@deleteDeviceBody": {"description": "Delete confirmation dialog body"},
+  "@renameDialogTitle": {
+    "description": "Rename bottom sheet title"
+  },
+  "renameFieldLabel": "设备名称",
+  "@renameFieldLabel": {
+    "description": "Rename sheet field label above the input well"
+  },
+  "renameHint": "建议包含位置或用途，便于区分",
+  "@renameHint": {
+    "description": "Rename sheet hint under the title"
+  },
+  "renameCounter": "{used} / {max}",
+  "@renameCounter": {
+    "description": "Rename sheet character counter, bottom-right of the well",
+    "placeholders": {
+      "used": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteDeviceTitle": "确定要注销「{name}」吗？",
+  "@deleteDeviceTitle": {
+    "description": "Delete confirmation sheet title",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteDeviceBody": "注销后，本机保存的该设备接入凭据与名称将被移除；不影响电脑端的任何数据。",
+  "@deleteDeviceBody": {
+    "description": "Delete confirmation sheet body"
+  },
   "settingsEntryTitle": "设置",
-  "@settingsEntryTitle": {"description": "Settings entry row on manage page"},
+  "@settingsEntryTitle": {
+    "description": "Settings entry row on manage page"
+  },
   "settingsEntrySubtitle": "安全 · 后台 · 通知 · 语言",
-  "@settingsEntrySubtitle": {"description": "Settings entry row subtitle summarizing sections"},
+  "@settingsEntrySubtitle": {
+    "description": "Settings entry row subtitle summarizing sections"
+  },
   "settingsEntryRisk": "通知链路受限，点开设置查看",
-  "@settingsEntryRisk": {"description": "Tooltip of danger icon when notification chain is at risk"},
+  "@settingsEntryRisk": {
+    "description": "Tooltip of danger icon when notification chain is at risk"
+  },
   "scannerTitle": "扫描二维码",
-  "@scannerTitle": {"description": "Full-screen scanner page appbar title"},
-  "scannerHint": "对准电脑端显示的远程控制二维码",
-  "@scannerHint": {"description": "Hint chip text on scanner page"},
-  "scannerReplaceHint": "对准电脑端新的远程控制二维码",
-  "@scannerReplaceHint": {"description": "Hint chip text when scanning to replace a link"},
+  "@scannerTitle": {
+    "description": "Full-screen scanner page appbar title"
+  },
+  "scannerHint": "扫码后将通过加密中继通道接入",
+  "@scannerHint": {
+    "description": "Hint chip text on scanner page"
+  },
+  "scannerReplaceHint": "扫描电脑端生成的新二维码",
+  "@scannerReplaceHint": {
+    "description": "Hint chip text when scanning to replace a link"
+  },
   "scannerPermTitle": "无法访问相机",
-  "@scannerPermTitle": {"description": "Scanner permission denied error title"},
+  "@scannerPermTitle": {
+    "description": "Scanner permission denied error title"
+  },
   "scannerPermBody": "扫码导入需要相机权限。请在系统设置中允许 ZRemote 使用相机后返回。",
-  "@scannerPermBody": {"description": "Scanner permission denied error body"},
+  "@scannerPermBody": {
+    "description": "Scanner permission denied error body"
+  },
   "scannerPermOpenSettings": "去设置",
-  "@scannerPermOpenSettings": {"description": "Button to open app system settings"},
+  "@scannerPermOpenSettings": {
+    "description": "Button to open app system settings"
+  },
   "invalidQr": "不是有效的远程控制二维码（缺少 sid/hash）",
-  "@invalidQr": {"description": "Snackbar when scanned code is not a valid control QR"},
-  "importDuplicate": "「{name}」已导入过，已为你切换过去",
-  "@importDuplicate": {"description": "Snack bar shown when importing an already-known device", "placeholders": {"name": {"type": "String"}}},
-
-  "switchDevice": "切换设备",
-  "@switchDevice": {"description": "Tooltip of session appbar title (opens device switcher)"},
-  "refreshTooltip": "刷新（重铸链接时间戳）",
-  "@refreshTooltip": {"description": "Session manual refresh button tooltip"},
+  "@invalidQr": {
+    "description": "Snackbar when scanned code is not a valid control QR"
+  },
+  "importDuplicate": "「{name}」已导入过，已切换到该设备",
+  "@importDuplicate": {
+    "description": "Snack bar shown when importing an already-known device",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "refreshTooltip": "刷新（重载中继页面）",
+  "@refreshTooltip": {
+    "description": "Session manual refresh button tooltip"
+  },
   "statusLive": "会话保活中",
-  "@statusLive": {"description": "Session LED status: alive"},
+  "@statusLive": {
+    "description": "Session LED status: alive"
+  },
   "statusError": "连接异常",
-  "@statusError": {"description": "Session LED status / error banner heading: connection error"},
+  "@statusError": {
+    "description": "Session LED status / error banner heading: connection error"
+  },
   "statusConnecting": "连接中",
-  "@statusConnecting": {"description": "Session LED status: connecting"},
+  "@statusConnecting": {
+    "description": "Session LED status: connecting"
+  },
   "errorBannerDetail": "自动重载未恢复；若持续失败，电脑端身份可能已轮换，请重新扫码导入",
-  "@errorBannerDetail": {"description": "Error banner detail text after auto-reload gave up"},
+  "@errorBannerDetail": {
+    "description": "Error banner detail text: connection lost, retry to recover"
+  },
   "retry": "重试",
-  "@retry": {"description": "Error banner retry button tooltip"},
-  "sessionsPanelTooltip": "会话列表",
-  "@sessionsPanelTooltip": {"description": "Session panel entry button tooltip"},
+  "@retry": {
+    "description": "Error banner retry button tooltip"
+  },
+  "sessionsPanelTooltip": "会话总览",
+  "@sessionsPanelTooltip": {
+    "description": "Session panel entry button tooltip"
+  },
   "sessionsPanelTitle": "会话",
-  "@sessionsPanelTitle": {"description": "Session panel sheet title"},
+  "@sessionsPanelTitle": {
+    "description": "Session panel sheet title"
+  },
   "sessionsPanelEmpty": "此设备暂无会话",
-  "@sessionsPanelEmpty": {"description": "Session panel empty state"},
-
+  "@sessionsPanelEmpty": {
+    "description": "Session panel empty state"
+  },
   "sessionGroupToday": "今天",
-  "@sessionGroupToday": {"description": "Session panel day-group heading: today"},
+  "@sessionGroupToday": {
+    "description": "Session panel day-group heading: today"
+  },
   "sessionGroupYesterday": "昨天",
-  "@sessionGroupYesterday": {"description": "Session panel day-group heading: yesterday"},
+  "@sessionGroupYesterday": {
+    "description": "Session panel day-group heading: yesterday"
+  },
   "sessionGroupDays": "{n}天",
-  "@sessionGroupDays": {"description": "Session panel day-group heading: N calendar days ago", "placeholders": {"n": {"type": "int"}}},
+  "@sessionGroupDays": {
+    "description": "Session panel day-group heading: N calendar days ago",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "sessionGroupThisWeek": "本周",
-  "@sessionGroupThisWeek": {"description": "Session panel week/month bucket heading: this week (official taskTimeline.thisWeek)"},
+  "@sessionGroupThisWeek": {
+    "description": "Session panel week/month bucket heading: this week (official taskTimeline.thisWeek)"
+  },
   "sessionGroupLastWeek": "上周",
-  "@sessionGroupLastWeek": {"description": "Session panel week/month bucket heading: last week (official taskTimeline.lastWeek)"},
+  "@sessionGroupLastWeek": {
+    "description": "Session panel week/month bucket heading: last week (official taskTimeline.lastWeek)"
+  },
   "sessionGroupThisMonth": "本月",
-  "@sessionGroupThisMonth": {"description": "Session panel week/month bucket heading: this month (official taskTimeline.thisMonth)"},
+  "@sessionGroupThisMonth": {
+    "description": "Session panel week/month bucket heading: this month (official taskTimeline.thisMonth)"
+  },
   "sessionGroupLastMonth": "上月",
-  "@sessionGroupLastMonth": {"description": "Session panel week/month bucket heading: last month (official taskTimeline.lastMonth)"},
+  "@sessionGroupLastMonth": {
+    "description": "Session panel week/month bucket heading: last month (official taskTimeline.lastMonth)"
+  },
   "sessionGroupOlder": "更早",
-  "@sessionGroupOlder": {"description": "Session panel day-group heading: older than last month / unknown time (official taskTimeline.older)"},
+  "@sessionGroupOlder": {
+    "description": "Session panel day-group heading: older than last month / unknown time (official taskTimeline.older)"
+  },
   "sessionGroupPinned": "已置顶",
-  "@sessionGroupPinned": {"description": "Session panel day-group heading: pinned (tasks-index membership.pinned)"},
+  "@sessionGroupPinned": {
+    "description": "Session panel day-group heading: pinned (tasks-index membership.pinned)"
+  },
   "sessionPhaseRunning": "运行中",
-  "@sessionPhaseRunning": {"description": "Session status pill: running/prewarming"},
+  "@sessionPhaseRunning": {
+    "description": "Session status pill: running/prewarming"
+  },
   "sessionPhaseCompleted": "已完成",
-  "@sessionPhaseCompleted": {"description": "Session status pill: completedSuccess/completedInterrupted"},
+  "@sessionPhaseCompleted": {
+    "description": "Session status pill: completedSuccess/completedInterrupted"
+  },
   "sessionPhaseFailed": "失败",
-  "@sessionPhaseFailed": {"description": "Session status pill: error"},
+  "@sessionPhaseFailed": {
+    "description": "Session status pill: error"
+  },
   "sessionTimeNow": "刚刚",
-  "@sessionTimeNow": {"description": "Relative row time: just now (official word form, no suffix)"},
+  "@sessionTimeNow": {
+    "description": "Relative row time: just now (official word form, no suffix)"
+  },
   "sessionTimeMinutes": "{n}分钟",
-  "@sessionTimeMinutes": {"description": "Relative row time: N minutes ago (official form, no 前 suffix)", "placeholders": {"n": {"type": "int"}}},
+  "@sessionTimeMinutes": {
+    "description": "Relative row time: N minutes ago (official form, no 前 suffix)",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "sessionTimeHours": "{n}小时",
-  "@sessionTimeHours": {"description": "Relative row time: N hours ago", "placeholders": {"n": {"type": "int"}}},
+  "@sessionTimeHours": {
+    "description": "Relative row time: N hours ago",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "sessionTimeDays": "{n}天",
-  "@sessionTimeDays": {"description": "Relative row time: N days ago", "placeholders": {"n": {"type": "int"}}},
-
-  "lockTitle": "已锁定",
-  "@lockTitle": {"description": "Biometric lock screen heading"},
+  "@sessionTimeDays": {
+    "description": "Relative row time: N days ago",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "lockTitle": "ZRemote",
+  "@lockTitle": {
+    "description": "Biometric lock screen heading (brand name)"
+  },
+  "lockActionPrimary": "轻触面容 / 指纹解锁",
+  "@lockActionPrimary": {
+    "description": "Primary line of the unlock card on the lock screen"
+  },
+  "lockActionFallback": "或使用锁屏密码",
+  "@lockActionFallback": {
+    "description": "Secondary line of the unlock card: screen-lock password fallback"
+  },
+  "lockFooter": "凭据加密存储于本机",
+  "@lockFooter": {
+    "description": "Lock screen footer meta line"
+  },
   "unlockButton": "解锁",
-  "@unlockButton": {"description": "Biometric lock screen button"},
+  "@unlockButton": {
+    "description": "Biometric lock screen button (legacy, kept for compatibility)"
+  },
   "unlockReason": "验证以解锁 ZRemote",
-  "@unlockReason": {"description": "localizedReason passed to system biometric prompt for unlocking"},
+  "@unlockReason": {
+    "description": "localizedReason passed to system biometric prompt for unlocking"
+  },
   "biometricEnableReason": "验证以开启 ZRemote 生物识别锁",
-  "@biometricEnableReason": {"description": "localizedReason when toggling the lock on"},
+  "@biometricEnableReason": {
+    "description": "localizedReason when toggling the lock on"
+  },
   "biometricDisableReason": "验证以关闭 ZRemote 生物识别锁",
-  "@biometricDisableReason": {"description": "localizedReason when toggling the lock off"},
+  "@biometricDisableReason": {
+    "description": "localizedReason when toggling the lock off"
+  },
   "biometricUnavailableToast": "此设备未配置生物识别或屏幕锁",
-  "@biometricUnavailableToast": {"description": "Toast when trying to enable with no biometrics configured"},
+  "@biometricUnavailableToast": {
+    "description": "Toast when trying to enable with no biometrics configured"
+  },
   "biometricNoLockToast": "此设备无可用屏幕锁，无法开启",
-  "@biometricNoLockToast": {"description": "Toast when enabling fails because no screen lock remains"},
+  "@biometricNoLockToast": {
+    "description": "Toast when enabling fails because no screen lock remains"
+  },
   "biometricForceDisabledToast": "设备已无可用屏幕锁，已强制关闭防锁死",
-  "@biometricForceDisabledToast": {"description": "Toast when lock was force-disabled to prevent lockout"},
+  "@biometricForceDisabledToast": {
+    "description": "Toast when lock was force-disabled to prevent lockout"
+  },
   "authIncompleteToast": "验证未完成，开关保持原状（{error}）",
-  "@authIncompleteToast": {"description": "Toast when verification errored; switch unchanged", "placeholders": {"error": {"type": "String"}}},
-
-  "settingsTitle": "设置",
-  "@settingsTitle": {"description": "Settings page header"},
+  "@authIncompleteToast": {
+    "description": "Toast when verification errored; switch unchanged",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsTitle": "应用设置",
+  "@settingsTitle": {
+    "description": "Settings page header"
+  },
   "sectionGeneral": "通用",
-  "@sectionGeneral": {"description": "Settings section label: general"},
+  "@sectionGeneral": {
+    "description": "Settings section label: general"
+  },
   "sectionSecurity": "安全",
-  "@sectionSecurity": {"description": "Settings section label: security"},
+  "@sectionSecurity": {
+    "description": "Settings section label: security"
+  },
   "sectionBackground": "后台",
-  "@sectionBackground": {"description": "Settings section label: background"},
-  "sectionNotifications": "通知",
-  "@sectionNotifications": {"description": "Settings section label: notifications"},
-  "languageTitle": "语言",
-  "@languageTitle": {"description": "Language picker row title"},
+  "@sectionBackground": {
+    "description": "Settings section label: background"
+  },
+  "sectionNotifications": "推送通知",
+  "@sectionNotifications": {
+    "description": "Settings section label: notifications"
+  },
+  "languageTitle": "界面语言",
+  "@languageTitle": {
+    "description": "Language picker row title"
+  },
   "languageSystem": "跟随系统",
-  "@languageSystem": {"description": "Language picker option: follow system"},
-  "biometricLockTitle": "生物识别锁",
-  "@biometricLockTitle": {"description": "Biometric lock switch title"},
-  "biometricLockSubtitle": "启动与离开较久后回到前台需验证",
-  "@biometricLockSubtitle": {"description": "Biometric lock switch subtitle"},
-  "keepAliveTitle": "后台保活",
-  "@keepAliveTitle": {"description": "Keep-alive switch title"},
-  "keepAliveOn": "切后台仍实时接收会话事件",
-  "@keepAliveOn": {"description": "Keep-alive subtitle when enabled"},
-  "keepAliveOff": "退后台可能被系统冻结",
-  "@keepAliveOff": {"description": "Keep-alive subtitle when disabled"},
+  "@languageSystem": {
+    "description": "Language picker option: follow system"
+  },
+  "themeTitle": "色彩主题",
+  "@themeTitle": {
+    "description": "Theme picker row title"
+  },
+  "themeSystem": "跟随系统",
+  "@themeSystem": {
+    "description": "Theme picker option: follow system"
+  },
+  "themeDark": "深色",
+  "@themeDark": {
+    "description": "Theme picker option: dark"
+  },
+  "themeLight": "浅色",
+  "@themeLight": {
+    "description": "Theme picker option: light"
+  },
+  "biometricLockTitle": "生物识别安全锁",
+  "@biometricLockTitle": {
+    "description": "Biometric lock switch title"
+  },
+  "biometricLockSubtitle": "启动或离开较久后，回到前台需验证",
+  "@biometricLockSubtitle": {
+    "description": "Biometric lock switch subtitle"
+  },
+  "keepAliveTitle": "后台持续保活通道",
+  "@keepAliveTitle": {
+    "description": "Keep-alive switch title"
+  },
+  "keepAliveOn": "切后台仍保持实时会话事件监听",
+  "@keepAliveOn": {
+    "description": "Keep-alive subtitle when enabled"
+  },
+  "keepAliveOff": "切后台可能被系统冻结",
+  "@keepAliveOff": {
+    "description": "Keep-alive subtitle when disabled"
+  },
   "batteryWhitelistTitle": "电池优化白名单",
-  "@batteryWhitelistTitle": {"description": "Battery optimization whitelist row title"},
+  "@batteryWhitelistTitle": {
+    "description": "Battery optimization whitelist row title"
+  },
   "batteryBlocked": "守护被系统限制：点此去省电策略设「无限制」",
-  "@batteryBlocked": {"description": "Vendor power policy blocked the guard service"},
+  "@batteryBlocked": {
+    "description": "Vendor power policy blocked the guard service"
+  },
   "batteryChecking": "检测中…",
-  "@batteryChecking": {"description": "Battery exemption state loading"},
+  "@batteryChecking": {
+    "description": "Battery exemption state loading"
+  },
   "batteryNotExempt": "未豁免：点击申请（部分厂商还需允许自启动）",
-  "@batteryNotExempt": {"description": "Battery exemption not granted yet"},
-  "batteryExempt": "已豁免——后台不受 Doze 限流",
-  "@batteryExempt": {"description": "Battery exemption granted"},
-  "notifApprovalTitle": "审批请求",
-  "@notifApprovalTitle": {"description": "Notification type switch: approval requests"},
-  "notifApprovalSubtitle": "需要你的批准或输入（推荐开启）",
-  "@notifApprovalSubtitle": {"description": "Approval switch subtitle"},
-  "notifCompleteTitle": "任务完成",
-  "@notifCompleteTitle": {"description": "Notification type switch: task completed"},
+  "@batteryNotExempt": {
+    "description": "Battery exemption not granted yet"
+  },
+  "batteryExempt": "已在系统白名单 · 不受 Doze 限流",
+  "@batteryExempt": {
+    "description": "Battery exemption granted"
+  },
+  "notifApprovalTitle": "审批与输入阻断提醒",
+  "@notifApprovalTitle": {
+    "description": "Notification type switch: approval requests"
+  },
+  "notifApprovalSubtitle": "当 AI 任务需要确认时高优先级弹窗",
+  "@notifApprovalSubtitle": {
+    "description": "Approval switch subtitle"
+  },
+  "notifCompleteTitle": "长任务完成通知",
+  "@notifCompleteTitle": {
+    "description": "Notification type switch: task completed"
+  },
   "notifCompleteSubtitle": "会话跑完时提醒",
-  "@notifCompleteSubtitle": {"description": "Completed switch subtitle"},
+  "@notifCompleteSubtitle": {
+    "description": "Completed switch subtitle"
+  },
   "notifFailTitle": "任务失败",
-  "@notifFailTitle": {"description": "Notification type switch: task failed"},
+  "@notifFailTitle": {
+    "description": "Notification type switch: task failed"
+  },
   "notifFailSubtitle": "会话出错时提醒",
-  "@notifFailSubtitle": {"description": "Failed switch subtitle"},
+  "@notifFailSubtitle": {
+    "description": "Failed switch subtitle"
+  },
   "notifFootnote": "提醒会标注来源设备与会话；正在查看的会话不提醒",
-  "@notifFootnote": {"description": "Footnote under notification switches"},
-
+  "@notifFootnote": {
+    "description": "Footnote under notification switches"
+  },
   "notifChannelApproval": "审批请求",
-  "@notifChannelApproval": {"description": "OS notification channel name for approvals"},
+  "@notifChannelApproval": {
+    "description": "OS notification channel name for approvals"
+  },
   "notifChannelFail": "任务失败",
-  "@notifChannelFail": {"description": "OS notification channel name for failures"},
+  "@notifChannelFail": {
+    "description": "OS notification channel name for failures"
+  },
   "notifChannelDone": "任务完成",
-  "@notifChannelDone": {"description": "OS notification channel name for completions"},
+  "@notifChannelDone": {
+    "description": "OS notification channel name for completions"
+  },
   "notifSessionFallback": "会话",
-  "@notifSessionFallback": {"description": "Fallback session title when event carries none"},
+  "@notifSessionFallback": {
+    "description": "Fallback session title when event carries none"
+  },
   "notifPermTitle": "[{device}] {session} 请求批准",
-  "@notifPermTitle": {"description": "Approval notification title", "placeholders": {"device": {"type": "String"}, "session": {"type": "String"}}},
+  "@notifPermTitle": {
+    "description": "Approval notification title",
+    "placeholders": {
+      "device": {
+        "type": "String"
+      },
+      "session": {
+        "type": "String"
+      }
+    }
+  },
   "notifPermBody": "Agent 有一个操作在等你批准",
-  "@notifPermBody": {"description": "Approval notification fallback body"},
+  "@notifPermBody": {
+    "description": "Approval notification fallback body"
+  },
   "notifElicitTitle": "[{device}] {session} 需要你的输入",
-  "@notifElicitTitle": {"description": "Input-request notification title", "placeholders": {"device": {"type": "String"}, "session": {"type": "String"}}},
+  "@notifElicitTitle": {
+    "description": "Input-request notification title",
+    "placeholders": {
+      "device": {
+        "type": "String"
+      },
+      "session": {
+        "type": "String"
+      }
+    }
+  },
   "notifElicitBody": "Agent 在等你的回答",
-  "@notifElicitBody": {"description": "Input-request notification fallback body"},
+  "@notifElicitBody": {
+    "description": "Input-request notification fallback body"
+  },
   "notifErrorTitle": "[{device}] {session} 出错",
-  "@notifErrorTitle": {"description": "Failure notification title", "placeholders": {"device": {"type": "String"}, "session": {"type": "String"}}},
+  "@notifErrorTitle": {
+    "description": "Failure notification title",
+    "placeholders": {
+      "device": {
+        "type": "String"
+      },
+      "session": {
+        "type": "String"
+      }
+    }
+  },
   "notifErrorBody": "任务失败，回来看看",
-  "@notifErrorBody": {"description": "Failure notification fallback body"},
+  "@notifErrorBody": {
+    "description": "Failure notification fallback body"
+  },
   "notifDoneTitle": "[{device}] {session} 已完成",
-  "@notifDoneTitle": {"description": "Completion notification title", "placeholders": {"device": {"type": "String"}, "session": {"type": "String"}}},
+  "@notifDoneTitle": {
+    "description": "Completion notification title",
+    "placeholders": {
+      "device": {
+        "type": "String"
+      },
+      "session": {
+        "type": "String"
+      }
+    }
+  },
   "notifDoneBody": "任务跑完了，回来看看结果",
-  "@notifDoneBody": {"description": "Completion notification fallback body"}
+  "@notifDoneBody": {
+    "description": "Completion notification fallback body"
+  },
+  "automationTooltip": "自动化",
+  "@automationTooltip": {
+    "description": "Session toolbar entry to the automation page"
+  },
+  "automationTabOffPeak": "闲时任务",
+  "@automationTabOffPeak": {
+    "description": "Off-peak tasks tab"
+  },
+  "automationTabScheduled": "定时排程",
+  "@automationTabScheduled": {
+    "description": "Scheduled automations tab"
+  },
+  "automationOffPeakHint": "电脑主机空闲时自动执行；排队中的任务可暂停、恢复或取消。",
+  "@automationOffPeakHint": {
+    "description": "Helper line above off-peak list"
+  },
+  "automationOfflineHint": "设备离线：列表为最后快照，操作已禁用",
+  "@automationOfflineHint": {
+    "description": "Offline warning strip under automation page app bar"
+  },
+  "automationNew": "新建任务",
+  "@automationNew": {
+    "description": "FAB and empty-state primary button"
+  },
+  "automationEmptyOffPeakTitle": "没有闲时任务",
+  "@automationEmptyOffPeakTitle": {
+    "description": "Off-peak empty state title"
+  },
+  "automationEmptyOffPeakBody": "云端算力空闲时按队列执行提交的指令。",
+  "@automationEmptyOffPeakBody": {
+    "description": "Off-peak empty state body"
+  },
+  "automationEmptyScheduledTitle": "没有定时任务",
+  "@automationEmptyScheduledTitle": {
+    "description": "Scheduled empty state title"
+  },
+  "automationEmptyScheduledBody": "按 cron 计划周期性自动执行指令。",
+  "@automationEmptyScheduledBody": {
+    "description": "Scheduled empty state body"
+  },
+  "automationStatusQueued": "排队中",
+  "@automationStatusQueued": {
+    "description": "Off-peak task status badge"
+  },
+  "automationStatusRunning": "运行中",
+  "@automationStatusRunning": {
+    "description": "Off-peak task status badge"
+  },
+  "automationStatusPaused": "已暂停",
+  "@automationStatusPaused": {
+    "description": "Off-peak task status badge"
+  },
+  "automationStatusCompleted": "已完成",
+  "@automationStatusCompleted": {
+    "description": "Off-peak task status badge"
+  },
+  "automationStatusFailed": "失败",
+  "@automationStatusFailed": {
+    "description": "Off-peak task status badge"
+  },
+  "automationStatusCancelled": "已取消",
+  "@automationStatusCancelled": {
+    "description": "Off-peak task status badge"
+  },
+  "automationQueuePosition": "排队第 {n} 位",
+  "@automationQueuePosition": {
+    "description": "Live queue position line",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "automationPause": "暂停",
+  "@automationPause": {
+    "description": "Pause off-peak task action"
+  },
+  "automationResume": "恢复",
+  "@automationResume": {
+    "description": "Resume paused off-peak task action"
+  },
+  "automationCancel": "取消",
+  "@automationCancel": {
+    "description": "Cancel off-peak task action"
+  },
+  "automationDelete": "删除",
+  "@automationDelete": {
+    "description": "Delete action"
+  },
+  "automationEdit": "编辑",
+  "@automationEdit": {
+    "description": "Edit action"
+  },
+  "automationRunNow": "立即执行",
+  "@automationRunNow": {
+    "description": "Trigger an automation immediately"
+  },
+  "automationRunQueued": "已排队执行",
+  "@automationRunQueued": {
+    "description": "Run-now queued snackbar"
+  },
+  "automationRunDuplicate": "上一次仍在队列中",
+  "@automationRunDuplicate": {
+    "description": "Run-now duplicate snackbar"
+  },
+  "automationDeleteTitle": "删除任务",
+  "@automationDeleteTitle": {
+    "description": "Delete confirmation dialog title"
+  },
+  "automationDeleteOffPeakBody": "删除后不可恢复。",
+  "@automationDeleteOffPeakBody": {
+    "description": "Delete off-peak confirmation body"
+  },
+  "automationDeleteScheduledBody": "删除后不可恢复。",
+  "@automationDeleteScheduledBody": {
+    "description": "Delete automation confirmation body"
+  },
+  "automationCancelRunningBody": "会停止正在运行的会话。",
+  "@automationCancelRunningBody": {
+    "description": "Cancel running task confirmation body"
+  },
+  "automationOpFailed": "操作失败，请重试",
+  "@automationOpFailed": {
+    "description": "Generic operation failure snackbar"
+  },
+  "automationSaved": "已保存",
+  "@automationSaved": {
+    "description": "Save success snackbar"
+  },
+  "automationFormNew": "配置闲时任务",
+  "@automationFormNew": {
+    "description": "Automation form create-mode title"
+  },
+  "automationFormEdit": "编辑任务",
+  "@automationFormEdit": {
+    "description": "Automation form edit-mode title"
+  },
+  "automationKindOffPeak": "闲时任务",
+  "@automationKindOffPeak": {
+    "description": "Form kind segment"
+  },
+  "automationKindScheduled": "定时任务",
+  "@automationKindScheduled": {
+    "description": "Form kind segment"
+  },
+  "automationFieldTitle": "任务名称",
+  "@automationFieldTitle": {
+    "description": "Form title field label"
+  },
+  "automationFieldPrompt": "执行指令 / Prompt",
+  "@automationFieldPrompt": {
+    "description": "Form prompt field label"
+  },
+  "automationFieldWorkspace": "工作区",
+  "@automationFieldWorkspace": {
+    "description": "Form workspace dropdown label"
+  },
+  "automationFieldWorkspaceManual": "工作区路径",
+  "@automationFieldWorkspaceManual": {
+    "description": "Form manual workspace field label (no candidates)"
+  },
+  "automationFieldSchedule": "计划",
+  "@automationFieldSchedule": {
+    "description": "Form schedule section label"
+  },
+  "automationCronDaily": "每日",
+  "@automationCronDaily": {
+    "description": "Cron preset segment"
+  },
+  "automationCronCustom": "自定义",
+  "@automationCronCustom": {
+    "description": "Cron preset segment / humanizer fallback"
+  },
+  "automationCronEveryHours": "每 {n} 小时",
+  "@automationCronEveryHours": {
+    "description": "Hour-interval cron humanizer",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "automationCronWeeklyOn": "每{weekday} {time}",
+  "@automationCronWeeklyOn": {
+    "description": "Weekly cron humanizer",
+    "placeholders": {
+      "weekday": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "automationCronInvalid": "cron 表达式非法（需 5 个字段：分 时 日 月 周）",
+  "@automationCronInvalid": {
+    "description": "Custom cron validation error"
+  },
+  "automationWeekdayMon": "周一",
+  "@automationWeekdayMon": {
+    "description": "Cron weekday chip"
+  },
+  "automationWeekdayTue": "周二",
+  "@automationWeekdayTue": {
+    "description": "Cron weekday chip"
+  },
+  "automationWeekdayWed": "周三",
+  "@automationWeekdayWed": {
+    "description": "Cron weekday chip"
+  },
+  "automationWeekdayThu": "周四",
+  "@automationWeekdayThu": {
+    "description": "Cron weekday chip"
+  },
+  "automationWeekdayFri": "周五",
+  "@automationWeekdayFri": {
+    "description": "Cron weekday chip"
+  },
+  "automationWeekdaySat": "周六",
+  "@automationWeekdaySat": {
+    "description": "Cron weekday chip"
+  },
+  "automationWeekdaySun": "周日",
+  "@automationWeekdaySun": {
+    "description": "Cron weekday chip"
+  },
+  "automationNextRun": "下次：{time}",
+  "@automationNextRun": {
+    "description": "Next-run line on automation card",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "automationTitleRequired": "请输入标题",
+  "@automationTitleRequired": {
+    "description": "Form validation"
+  },
+  "automationPromptRequired": "请输入指令内容",
+  "@automationPromptRequired": {
+    "description": "Form validation"
+  },
+  "automationWorkspaceRequired": "请选择工作区",
+  "@automationWorkspaceRequired": {
+    "description": "Form validation"
+  },
+  "automationPromptTooLong": "指令内容超过 4000 字符上限",
+  "@automationPromptTooLong": {
+    "description": "Form validation (single-frame soft cap)"
+  },
+  "automationOffPeakFormHint": "任务将在该设备主机空闲时按队列执行",
+  "@automationOffPeakFormHint": {
+    "description": "Off-peak form info row"
+  },
+  "automationAdvanced": "高级设置",
+  "@automationAdvanced": {
+    "description": "Advanced section header"
+  },
+  "automationPermissionMode": "权限模式",
+  "@automationPermissionMode": {
+    "description": "Permission mode dropdown label"
+  },
+  "automationFieldModel": "模型",
+  "@automationFieldModel": {
+    "description": "Read-only model field label"
+  },
+  "automationFieldThoughtLevel": "思考级别",
+  "@automationFieldThoughtLevel": {
+    "description": "Read-only thought-level field label"
+  },
+  "automationReuseTemplate": "用此模板新建",
+  "@automationReuseTemplate": {
+    "description": "Terminal-state card action: new task from template"
+  },
+  "automationFailureReason": "失败原因：{reason}",
+  "@automationFailureReason": {"description": "Failed off-peak card line (host failureReason)", "placeholders": {"reason": {"type": "String"}}},
+  "automationFilesChanged": "变更 {n} 个文件",
+  "@automationFilesChanged": {"description": "Completed off-peak card line (host filesChanged)", "placeholders": {"n": {"type": "int"}}},
+  "automationCreateLimitReached": "定时任务已达上限（20 个），请先删除不需要的",
+  "@automationCreateLimitReached": {"description": "createAutomation AUTOMATION_CREATE_LIMIT_REACHED snackbar"},
+  "automationCreateEligibility": "当前不符合闲时任务参与条件",
+  "@automationCreateEligibility": {"description": "createTask errorCategory eligibility_3101 snackbar"},
+  "automationCreateQuota": "取号额度不足，请稍后再试",
+  "@automationCreateQuota": {"description": "createTask errorCategory quota_3103 snackbar"},
+  "automationCreateValidation": "参数校验未通过，请检查表单内容",
+  "@automationCreateValidation": {"description": "createTask errorCategory client_validation snackbar"},
+  "automationCreateNetwork": "网络波动，请稍后重试",
+  "@automationCreateNetwork": {"description": "createTask errorCategory network snackbar"},
+  "presetLabel": "常用预设",
+  "@presetLabel": {
+    "description": "Label above preset chips in off-peak form"
+  },
+  "presetBuildClean": "构建产物清理",
+  "@presetBuildClean": {
+    "description": "Off-peak form preset prompt template"
+  },
+  "dialNextCountdown": "距下次 {duration}",
+  "@dialNextCountdown": {
+    "description": "Schedule dial center countdown to nearest next run",
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "dialTodayCount": "今日 {count} 个排程",
+  "@dialTodayCount": {
+    "description": "Schedule dial subline: schedules on today",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dialNoSchedule": "暂无排程",
+  "@dialNoSchedule": {
+    "description": "Schedule dial center line when no schedules exist"
+  },
+  "claimEntryTooltip": "领取活动",
+  "@claimEntryTooltip": {
+    "description": "Session toolbar entry to the claim page"
+  },
+  "claimScopeLabel": "权益到账设备",
+  "@claimScopeLabel": {
+    "description": "Claim page ready list header: device the benefits are credited to"
+  },
+  "claimEmpty": "暂无可领活动",
+  "@claimEmpty": {
+    "description": "Claim page empty state title"
+  },
+  "claimEmptyHint": "若本设备任一账号已领过、或活动未开始/已结束，也会显示此状态。",
+  "@claimEmptyHint": {
+    "description": "Claim page empty state ambiguity hint (preview empty may mean already claimed)"
+  },
+  "claimAction": "领取",
+  "@claimAction": {
+    "description": "Claim button on plan card"
+  },
+  "claimRefresh": "刷新",
+  "@claimRefresh": {
+    "description": "Claim page appbar refresh button"
+  },
+  "claimUnavailable": "活动暂不可领",
+  "@claimUnavailable": {
+    "description": "Snackbar when captcha config disabled or entry unavailable"
+  },
+  "claimCaptchaFallbackTitle": "需要完成验证",
+  "@claimCaptchaFallbackTitle": {
+    "description": "Fallback dialog title when traceless captcha failed"
+  },
+  "claimCaptchaFallbackBody": "自动验证未通过。请点左上角返回遥控页面，在页面底部的活动横幅中点击领取，完成滑块验证。",
+  "@claimCaptchaFallbackBody": {
+    "description": "Fallback dialog body: manual claim via official banner on the remote page"
+  },
+  "claimSuccessTitle": "{plan} 领取成功",
+  "@claimSuccessTitle": {
+    "description": "Ticket dialog title",
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
+  "claimSuccessReady": "{list} 已可使用。",
+  "@claimSuccessReady": {
+    "description": "Ticket dialog description when already effective",
+    "placeholders": {
+      "list": {
+        "type": "String"
+      }
+    }
+  },
+  "claimSuccessPending": "{list} 将于 {time} 生效。",
+  "@claimSuccessPending": {
+    "description": "Ticket dialog description when starts later",
+    "placeholders": {
+      "list": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "claimTicketAmountUnit": "Tokens",
+  "@claimTicketAmountUnit": {
+    "description": "Ticket amount row unit suffix"
+  },
+  "claimTicketBenefitDaily": "{model} 每日 {amount} {unit}",
+  "@claimTicketBenefitDaily": {
+    "description": "Ticket benefit line, daily period",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "claimTicketBenefit": "{model} {amount} {unit}",
+  "@claimTicketBenefit": {
+    "description": "Ticket benefit line",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "claimTicketEndsAt": "有效期至 {time}",
+  "@claimTicketEndsAt": {
+    "description": "Ticket validity line",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "claimReplayTooltip": "重新播放票券动画",
+  "@claimReplayTooltip": {
+    "description": "Ticket replay button tooltip"
+  },
+  "claimGotIt": "知道了",
+  "@claimGotIt": {
+    "description": "Acknowledge button in claim result dialogs"
+  },
+  "claimCode1001": "套餐不存在",
+  "@claimCode1001": {
+    "description": "Claim failure code 1001"
+  },
+  "claimCode1002": "活动已结束或暂不可领取",
+  "@claimCode1002": {
+    "description": "Claim failure code 1002"
+  },
+  "claimCode1003": "该套餐已经领取过",
+  "@claimCode1003": {
+    "description": "Claim failure code 1003"
+  },
+  "claimCode1004": "当前账号或客户端版本不满足领取条件",
+  "@claimCode1004": {
+    "description": "Claim failure code 1004"
+  },
+  "claimCode1005": "今日领取名额已用完",
+  "@claimCode1005": {
+    "description": "Claim failure code 1005 (quota exhausted; retry hint appended separately)"
+  },
+  "claimCode3001": "领取参数错误，请刷新后重试",
+  "@claimCode3001": {
+    "description": "Claim failure code 3001"
+  },
+  "claimCode3007": "验证码校验失败，请重试",
+  "@claimCode3007": {
+    "description": "Claim failure code 3007"
+  },
+  "claimCode401": "请先登录后再领取，完成后回来重试",
+  "@claimCode401": {
+    "description": "Claim failure code 401"
+  },
+  "claimFailedGeneric": "领取失败，请稍后重试",
+  "@claimFailedGeneric": {
+    "description": "Generic claim failure text (unknown code / snackbar)"
+  },
+  "claimFailedTitle": "领取失败",
+  "@claimFailedTitle": {
+    "description": "Claim failure dialog title"
+  },
+  "claimRetryAt": "{time} 后可再试",
+  "@claimRetryAt": {
+    "description": "1005 same-day retry hint with formatted time",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "claimRetryTomorrow": "明日可再试",
+  "@claimRetryTomorrow": {
+    "description": "1005 cross-day retry hint"
+  },
+  "claimDeviceNotReady": "设备未就绪，请确认连接后重试",
+  "@claimDeviceNotReady": {
+    "description": "Claim page error state when bridge not ready / timed out"
+  },
+  "claimServiceUnavailable": "页面服务暂不可用，请稍候重试",
+  "@claimServiceUnavailable": {
+    "description": "Claim page error when session is live but page fiber services are still reloading (e.g. right after a successful claim)"
+  },
+  "telemetryBound": "设备",
+  "@telemetryBound": {
+    "description": "Telemetry banner: bound devices label"
+  },
+  "telemetryOnlineUnit": "台在线",
+  "@telemetryOnlineUnit": {
+    "description": "Telemetry banner: online unit label"
+  },
+  "telemetryOnlineCount": "{n} 台在线",
+  "@telemetryOnlineCount": {
+    "description": "Telemetry banner: online unit",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "telemetryUnread": "未读提醒",
+  "@telemetryUnread": {
+    "description": "Telemetry banner / device metric cell: unread label"
+  },
+  "telemetryUnreadUnit": "条待审批",
+  "@telemetryUnreadUnit": {
+    "description": "Telemetry banner: unread unit label"
+  },
+  "telemetryUnreadCount": "{n} 条待审批",
+  "@telemetryUnreadCount": {
+    "description": "Unread count unit text",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "pairedHostsSection": "已绑定设备 ({count})",
+  "@pairedHostsSection": {
+    "description": "Section header for paired host devices list",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "metricUnreadZero": "0 条待审批",
+  "@metricUnreadZero": {
+    "description": "Device metric cell: zero unread"
+  },
+  "metricCredentials": "接入凭据",
+  "@metricCredentials": {
+    "description": "Device metric cell: credentials label"
+  },
+  "chipOnline": "在线",
+  "@chipOnline": {
+    "description": "Device card status chip: online"
+  },
+  "chipOffline": "离线",
+  "@chipOffline": {
+    "description": "Device card status chip: offline"
+  },
+  "addDeviceCardTitle": "接入新设备",
+  "@addDeviceCardTitle": {
+    "description": "Dashed add-device card title / import sheet heading"
+  },
+  "addDeviceCardSub": "扫描二维码或从剪贴板导入连接",
+  "@addDeviceCardSub": {
+    "description": "Dashed add-device card subtitle"
+  },
+  "importSheetScanSub": "电脑端生成的接入二维码",
+  "@importSheetScanSub": {
+    "description": "Import sheet: scan entry subtitle"
+  },
+  "importSheetPasteSub": "从剪贴板读取控制链接并导入",
+  "@importSheetPasteSub": {
+    "description": "Import sheet: paste entry subtitle"
+  },
+  "pasteDialogSub": "粘贴电脑端生成的控制链接，一次导入长期有效",
+  "@pasteDialogSub": {
+    "description": "Paste dialog subtitle"
+  },
+  "pasteFieldLabel": "链接",
+  "@pasteFieldLabel": {
+    "description": "Paste dialog input label"
+  },
+  "pasteValidFormat": "格式校验通过",
+  "@pasteValidFormat": {
+    "description": "Paste dialog live validation chip"
+  },
+  "automationCenterTitle": "自动化中心",
+  "@automationCenterTitle": {
+    "description": "Automation page appbar title"
+  },
+  "automationScopeLabel": "当前目标设备",
+  "@automationScopeLabel": {
+    "description": "Scope dock label on automation page"
+  },
+  "automationRelayOnline": "中继在线",
+  "@automationRelayOnline": {
+    "description": "Scope dock tag: relay online"
+  },
+  "automationRelayOffline": "中继离线",
+  "@automationRelayOffline": {
+    "description": "Scope dock tag: relay offline"
+  },
+  "automationPolicyTitle": "专属闲时任务队列",
+  "@automationPolicyTitle": {
+    "description": "Policy banner title on off-peak tab"
+  },
+  "automationQueueTitle": "执行队列 ({n})",
+  "@automationQueueTitle": {
+    "description": "Off-peak section head with count",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "automationQueueBadge": "待执行",
+  "@automationQueueBadge": {
+    "description": "Off-peak section head badge when tasks pending"
+  },
+  "automationPlansTitle": "专属计划 ({n} 项)",
+  "@automationPlansTitle": {
+    "description": "Scheduled section head with count",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "automationDockOffPeak": "为 {name} 添加闲时任务",
+  "@automationDockOffPeak": {
+    "description": "Bottom dock button on off-peak tab",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "automationDockScheduled": "为 {name} 添加定时排程",
+  "@automationDockScheduled": {
+    "description": "Bottom dock button on scheduled tab",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "formTargetLabel": "目标执行工作站 (设备作用域锁定)",
+  "@formTargetLabel": {
+    "description": "Form target-device lock card label"
+  },
+  "advPermissionDesc": "任务在主机侧的审批范围",
+  "@advPermissionDesc": {
+    "description": "Advanced row: permission mode description"
+  },
+  "advModelDesc": "跟随主机端当前订阅",
+  "@advModelDesc": {
+    "description": "Advanced row: model description"
+  },
+  "advThoughtDesc": "跟随主机端默认配置",
+  "@advThoughtDesc": {
+    "description": "Advanced row: thought level description"
+  },
+  "automationFieldTitleHint": "输入任务名称…",
+  "@automationFieldTitleHint": {
+    "description": "Form title input hint"
+  },
+  "automationCronInterpreted": "语义反解: {value}",
+  "@automationCronInterpreted": {
+    "description": "Cron interpreter bar with humanized text",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "sectionAppearance": "通用外观",
+  "@sectionAppearance": {
+    "description": "Settings section: appearance"
+  },
+  "sectionSecurityKeepalive": "硬件安全与保活",
+  "@sectionSecurityKeepalive": {
+    "description": "Settings section: security + keepalive"
+  },
+  "settingsExemptBadge": "已豁免 ✓",
+  "@settingsExemptBadge": {
+    "description": "Battery whitelist row: exempt badge"
+  },
+  "sessionsPanelSubtitle": "{name} · {n} 个会话",
+  "@sessionsPanelSubtitle": {
+    "description": "Session panel sheet subtitle",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "sessionsPanelCount": "{n} 个会话",
+  "@sessionsPanelCount": {
+    "description": "Session panel sheet subtitle without device",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "claimActionBusy": "领取中…",
+  "@claimActionBusy": {
+    "description": "Claim hero button label while claim in flight"
+  },
+  "smartClipDetected": "检测到剪贴板包含合法中继凭证",
+  "@smartClipDetected": {
+    "description": "Smart clipboard pill: detected valid relay credential"
+  },
+  "smartClipAction": "一键填入",
+  "@smartClipAction": {
+    "description": "Smart clipboard pill action"
+  },
+  "pasteChannelChip": "加密中继通道",
+  "@pasteChannelChip": {
+    "description": "Paste dialog header hw-chip label"
+  },
+  "renameSubtitle": "仅修改本机显示名称，不影响设备接入与数据",
+  "@renameSubtitle": {
+    "description": "Rename sheet subtitle"
+  },
+  "renameSave": "保存更改",
+  "@renameSave": {
+    "description": "Rename sheet confirm button"
+  },
+  "replaceScanSub": "电脑端生成的新二维码",
+  "@replaceScanSub": {
+    "description": "Replace option subtitle: scan"
+  },
+  "replacePasteSub": "读取并解析 https://… 凭证",
+  "@replacePasteSub": {
+    "description": "Replace option subtitle: paste"
+  },
+  "deleteConfirmAction": "确认注销并断开",
+  "@deleteConfirmAction": {
+    "description": "Unlink confirm button"
+  },
+  "scannerPrimaryHint": "对准电脑端显示的远程控制二维码",
+  "@scannerPrimaryHint": {
+    "description": "Scanner primary hint line"
+  },
+  "sessionTitleTooltip": "当前控制设备：{name} · 点击返回设备管理",
+  "@sessionTitleTooltip": {
+    "description": "Session appbar title tooltip",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "automationFormNewScheduled": "配置定时排程",
+  "@automationFormNewScheduled": {
+    "description": "Scheduled form appbar title"
+  },
+  "automationFieldTitleScheduled": "计划名称",
+  "@automationFieldTitleScheduled": {
+    "description": "Scheduled form title label"
+  },
+  "automationFieldTitleHintScheduled": "输入计划名称…",
+  "@automationFieldTitleHintScheduled": {
+    "description": "Scheduled form title placeholder"
+  },
+  "automationFieldPromptScheduled": "待执行任务脚本",
+  "@automationFieldPromptScheduled": {
+    "description": "Scheduled form prompt label"
+  },
+  "presetGitBackup": "Git 全量备份",
+  "@presetGitBackup": {
+    "description": "Off-peak preset: git backup"
+  },
+  "presetSecurityAudit": "安全漏洞审计",
+  "@presetSecurityAudit": {
+    "description": "Off-peak preset: security audit"
+  },
+  "claimLimitedTag": "设备专属限时券",
+  "@claimLimitedTag": {
+    "description": "Claim hero badge tag"
+  },
+  "repoPrefix": "官方开源仓库",
+  "@repoPrefix": {
+    "description": "Settings repo footer prefix"
+  },
+  "automationCronWeekdays": "工作日",
+  "@automationCronWeekdays": {
+    "description": "Cron preset segment: weekdays"
+  },
+  "automationCronWeekend": "周末",
+  "@automationCronWeekend": {
+    "description": "Cron preset segment: weekend"
+  },
+  "automationCronHourly": "每小时",
+  "@automationCronHourly": {
+    "description": "Cron humanizer: hourly (legacy cron compat)"
+  },
+  "automationCronWeekdaysOn": "每周一至周五 {time}",
+  "@automationCronWeekdaysOn": {
+    "description": "Cron humanizer: weekdays range",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "automationCronWeekendOn": "每周六、周日 {time}",
+  "@automationCronWeekendOn": {
+    "description": "Cron humanizer: weekend range",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "countdownHm": "{h} 小时 {m} 分",
+  "@countdownHm": {
+    "description": "Countdown hours+minutes",
+    "placeholders": {
+      "h": {
+        "type": "int"
+      },
+      "m": {
+        "type": "int"
+      }
+    }
+  },
+  "countdownM": "{m} 分钟",
+  "@countdownM": {
+    "description": "Countdown minutes only",
+    "placeholders": {
+      "m": {
+        "type": "int"
+      }
+    }
+  },
+  "countdownLt1": "<1 分钟",
+  "@countdownLt1": {
+    "description": "Countdown under a minute"
+  },
+  "usageRefresh": "刷新",
+  "@usageRefresh": {
+    "description": "Usage page refresh (appbar tooltip + error retry button)"
+  },
+  "usageSummaryTotalTokens": "累计 Token",
+  "@usageSummaryTotalTokens": {
+    "description": "Summary cell: lifetime total tokens"
+  },
+  "usageSummaryPeakDay": "单日峰值",
+  "@usageSummaryPeakDay": {
+    "description": "Summary cell: peak single-day tokens"
+  },
+  "usageSummaryLongestSession": "最长会话",
+  "@usageSummaryLongestSession": {
+    "description": "Summary cell: longest session duration"
+  },
+  "usageSummaryCurrentStreak": "连续使用",
+  "@usageSummaryCurrentStreak": {
+    "description": "Summary cell: current usage streak in days"
+  },
+  "usageSummaryLongestStreak": "最长连续",
+  "@usageSummaryLongestStreak": {
+    "description": "Summary cell: longest usage streak in days"
+  },
+  "usageSummaryFavoriteModel": "常用模型",
+  "@usageSummaryFavoriteModel": {
+    "description": "Summary cell: favorite model name"
+  },
+  "usageHeatmapTitle": "使用热力图",
+  "@usageHeatmapTitle": {
+    "description": "Usage heatmap section title"
+  },
+  "usageHeatmapLess": "少",
+  "@usageHeatmapLess": {
+    "description": "Heatmap legend: less"
+  },
+  "usageHeatmapMore": "多",
+  "@usageHeatmapMore": {
+    "description": "Heatmap legend: more"
+  },
+  "usageTrendTitle": "每日模型用量",
+  "@usageTrendTitle": {
+    "description": "Daily model usage section title (trend + share)"
+  },
+  "usageShareTitle": "模型占比",
+  "@usageShareTitle": {
+    "description": "Model share card title"
+  },
+  "usageOther": "其他",
+  "@usageOther": {
+    "description": "Model share: aggregated other models row"
+  },
+  "usageRange7d": "近 7 天",
+  "@usageRange7d": {
+    "description": "Range toggle: last 7 days"
+  },
+  "usageRange30d": "近 30 天",
+  "@usageRange30d": {
+    "description": "Range toggle: last 30 days"
+  },
+  "usageEmptyTitle": "暂无使用记录",
+  "@usageEmptyTitle": {
+    "description": "Empty state title (no usage data)"
+  },
+  "usageEmptyDesc": "开始使用后，这里会展示统计",
+  "@usageEmptyDesc": {
+    "description": "Empty state description"
+  },
+  "usageSectionUnavailable": "统计暂不可用",
+  "@usageSectionUnavailable": {
+    "description": "Range section degraded card when ranged call fails"
+  },
+  "usageDayTotalTokens": "当日消耗",
+  "@usageDayTotalTokens": {
+    "description": "Day detail sheet: tokens counter label"
+  },
+  "usageDayTurns": "轮次",
+  "@usageDayTurns": {
+    "description": "Day detail sheet: turns counter label"
+  },
+  "usageDayToolCalls": "工具调用",
+  "@usageDayToolCalls": {
+    "description": "Day detail sheet: tool calls counter label"
+  },
+  "usageDayModels": "模型明细",
+  "@usageDayModels": {
+    "description": "Day detail sheet: per-model breakdown section"
+  },
+    "usageDayPrev": "前一天",
+  "@usageDayPrev": {
+    "description": "Day detail sheet: step to previous day"
+  },
+  "usageDayNext": "后一天",
+  "@usageDayNext": {
+    "description": "Day detail sheet: step to next day"
+  },
+"usageDayNoUsage": "当日无使用记录",
+  "@usageDayNoUsage": {
+    "description": "Day detail sheet: no-usage caption"
+  },
+  "usageDaysCount": "{count} 天",
+  "@usageDaysCount": {
+    "description": "Day count with unit (streak cells)",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "usageDurH": "时",
+  "@usageDurH": {
+    "description": "Duration unit: hours"
+  },
+  "usageDurM": "分",
+  "@usageDurM": {
+    "description": "Duration unit: minutes"
+  },
+  "usageDurS": "秒",
+  "@usageDurS": {
+    "description": "Duration unit: seconds"
+  },
+  "usageLoadFailed": "读取用量失败",
+  "@usageLoadFailed": {
+    "description": "Usage load failed error title"
+  },
+  "usageServiceUnavailable": "页面服务暂不可用",
+  "@usageServiceUnavailable": {
+    "description": "Page service unavailable (LED live branch)"
+  },
+  "usageDeviceNotReady": "设备未就绪，请检查连接",
+  "@usageDeviceNotReady": {
+    "description": "Device not ready (LED not live branch)"
+  },
+  "toolboxTitle": "功能工具箱",
+  "@toolboxTitle": {
+    "description": "Title of side panel toolbox drawer"
+  },
+  "toolboxSubtitle": "扩展与辅助工具",
+  "@toolboxSubtitle": {
+    "description": "Subtitle of side panel toolbox drawer"
+  },
+  "toolboxAutomation": "自动化调度",
+  "@toolboxAutomation": {
+    "description": "Toolbox card title for automation"
+  },
+  "toolboxAutomationDesc": "定时任务与指令调度",
+  "@toolboxAutomationDesc": {
+    "description": "Toolbox card description for automation"
+  },
+  "toolboxClaim": "权益中心",
+  "@toolboxClaim": {
+    "description": "Toolbox card title for claim"
+  },
+  "toolboxClaimDesc": "活动礼包与算力领取",
+  "@toolboxClaimDesc": {
+    "description": "Toolbox card description for claim"
+  },
+  "toolboxClaimReady": "有可领",
+  "@toolboxClaimReady": {
+    "description": "Badge when claims are ready"
+  },
+  "toolboxQueued": "{count} 条排队",
+  "@toolboxQueued": {
+    "description": "Queued automation count badge",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "toolboxUsage": "用量统计",
+  "@toolboxUsage": {
+    "description": "Toolbox card title for usage stats"
+  },
+  "toolboxUsageDesc": "应用使用统计",
+  "@toolboxUsageDesc": {
+    "description": "Toolbox card description for usage stats"
+  },
+  "toolboxMoreComing": "更多功能",
+  "@toolboxMoreComing": {
+    "description": "Placeholder title for future expansion cards"
+  },
+  "toolboxMoreComingDesc": "即将推出",
+  "@toolboxMoreComingDesc": {
+    "description": "Placeholder description for future expansion cards"
+  }
 }

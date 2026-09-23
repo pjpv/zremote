@@ -38,6 +38,7 @@ Future<void> pumpGate(
   required Duration relockAfter,
   required Future<bool> Function(String reason) authenticate,
   BiometricNotifier Function()? notifier,
+  bool haloAnimated = true,
 }) {
   return tester.pumpWidget(
     ProviderScope(
@@ -50,6 +51,7 @@ Future<void> pumpGate(
         home: BiometricGate(
           relockAfter: relockAfter,
           authenticate: authenticate,
+          haloAnimated: haloAnimated,
           child: const Text('SECRET'),
         ),
       ),
@@ -58,7 +60,7 @@ Future<void> pumpGate(
 }
 
 Finder get visibleSecret => find.text('SECRET').hitTestable();
-Finder get visibleLock => find.text('已锁定').hitTestable();
+Finder get visibleLock => find.text('或使用锁屏密码').hitTestable();
 
 void main() {
   testWidgets('冷启动首帧后自动验证，通过则进入内容', (tester) async {
@@ -192,5 +194,22 @@ void main() {
     expect(visibleSecret, findsOneWidget, reason: '锁死违背 fail-open 契约');
     expect(visibleLock, findsNothing);
     expect(mutable._value, isFalse, reason: '开关必须落盘为关，防下次启动再锁');
+  });
+
+  testWidgets('锁屏新文案：轻触解锁/锁屏密码兜底/加密页脚齐备', (tester) async {
+    await pumpGate(
+      tester,
+      enabled: true,
+      haloAnimated: false,
+      relockAfter: const Duration(seconds: 10),
+      authenticate: (reason) async => false,
+    );
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pump();
+
+    expect(visibleLock, findsOneWidget);
+    expect(find.text('轻触面容 / 指纹解锁'), findsOneWidget);
+    expect(find.text('凭据加密存储于本机'), findsOneWidget);
+    expect(find.text('ZRemote'), findsOneWidget, reason: '标题即品牌名');
   });
 }
