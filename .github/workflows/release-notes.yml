@@ -1,0 +1,25 @@
+name: release-notes
+
+on:
+  push:
+    paths: [".github/release-notes/**"]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply release notes from files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          shopt -s nullglob
+          for f in .github/release-notes/*.md; do
+            tag=$(basename "$f" .md)
+            echo "applying notes for $tag"
+            gh release edit "$tag" --notes-file "$f"
+          done
