@@ -20,6 +20,10 @@ jobs:
           shopt -s nullglob
           for f in .github/release-notes/*.md; do
             tag=$(basename "$f" .md)
-            echo "applying notes for $tag"
-            gh release edit "$tag" --notes-file "$f"
+            if gh release view "$tag" >/dev/null 2>&1; then
+              echo "applying notes for $tag"
+              gh release edit "$tag" --notes-file "$f"
+            else
+              echo "release $tag not created yet, skip (release workflow will run later; re-push or edit manually)"
+            fi
           done
