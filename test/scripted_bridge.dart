@@ -68,6 +68,9 @@ class _FakeDispatch implements RpcDispatch {
     'usageStatsService': 'usage-stats',
     'codingPlanSubscriptionService': 'coding-plan-subscription',
     '__zrCaptcha': 'zr-captcha',
+    'providerSettingsService': 'provider-settings',
+    'modelSelectionService': 'model-selection',
+    'settingService': 'setting',
   };
   final channel = svcToChannel[command['s']] ?? command['s']! as String;
   final args = argsOf(command);

@@ -10,13 +10,14 @@
   "pasteDialogTitle": "Paste control link",
   "importButton": "Connect and import",
   "pasteCharCount": "{used} / {max} chars",
-  "importFailed": "Import failed: the link must include sid and hash parameters",
+  "importFailed": "Import failed: link must contain sid; legacy links also need hash",
   "manyDevicesTitle": "Quite a few devices",
   "manyDevicesBody": "More live WebView sessions means more memory. With 6+ devices, low-RAM phones may kill the app in the background. Continue?",
   "emptyTitle": "No devices yet",
   "emptyBody": "Open \"Mobile Remote Control\" in ZCode on your computer, then connect by scanning the QR code or pasting the link. Import once, stays valid.",
   "unnamedDevice": "Unnamed device",
   "deviceAddedOn": "Added {date}",
+  "deviceV2Badge": "V2 account",
   "menuOpenSession": "Open session",
   "menuRename": "Rename device",
   "menuReplace": "Replace connection",
@@ -43,13 +44,14 @@
   "scannerPermTitle": "Camera unavailable",
   "scannerPermBody": "Scanning needs camera access. Allow it for ZRemote in system settings, then come back.",
   "scannerPermOpenSettings": "Open settings",
-  "invalidQr": "Not a valid remote-control QR code (missing sid/hash)",
+  "invalidQr": "Not a valid remote-control QR code (missing sid, or legacy link missing hash)",
   "importDuplicate": "\"{name}\" already imported; switched to it",
   "refreshTooltip": "Refresh (reload relay page)",
   "statusLive": "Session alive",
   "statusError": "Connection error",
   "statusConnecting": "Connecting",
   "errorBannerDetail": "Auto-reload did not recover. If this keeps failing, the computer identity may have rotated — re-scan or re-import the link.",
+  "webviewIsolationUnsupportedHint": "This device's WebView does not support account isolation; multiple accounts will share the same login",
   "retry": "Retry",
   "sessionsPanelTooltip": "Session overview",
   "sessionsPanelTitle": "Sessions",
@@ -453,7 +455,7 @@
   "@importSheetScanSub": {
     "description": "Import sheet: scan entry subtitle"
   },
-  "importSheetPasteSub": "Read the control link from the clipboard",
+  "importSheetPasteSub": "Read the control link from the clipboard (supports 3.16.1 V2 links)",
   "@importSheetPasteSub": {
     "description": "Import sheet: paste entry subtitle"
   },
@@ -468,6 +470,14 @@
   "pasteValidFormat": "Link verified",
   "@pasteValidFormat": {
     "description": "Paste dialog live validation chip"
+  },
+  "pasteFieldHint": "https://zcode.z.ai/remote/v4?sid=...&hash=... (legacy) or ?app_version=3.16.1&sid=... (V2)",
+  "@pasteFieldHint": {
+    "description": "Paste dialog input hint showing legacy and V2 link shapes"
+  },
+  "v2LoginHint": "V2 link recognized; sign in on the page after opening",
+  "@v2LoginHint": {
+    "description": "Paste dialog validation chip for V2 links"
   },
   "automationCenterTitle": "Automation",
   "@automationCenterTitle": {
@@ -744,6 +754,34 @@
   "@usageHeatmapMore": {
     "description": null
   },
+  "usageHeatmapDowMon": "Mo",
+  "@usageHeatmapDowMon": {
+    "description": null
+  },
+  "usageHeatmapDowTue": "Tu",
+  "@usageHeatmapDowTue": {
+    "description": null
+  },
+  "usageHeatmapDowWed": "We",
+  "@usageHeatmapDowWed": {
+    "description": null
+  },
+  "usageHeatmapDowThu": "Th",
+  "@usageHeatmapDowThu": {
+    "description": null
+  },
+  "usageHeatmapDowFri": "Fr",
+  "@usageHeatmapDowFri": {
+    "description": null
+  },
+  "usageHeatmapDowSat": "Sa",
+  "@usageHeatmapDowSat": {
+    "description": null
+  },
+  "usageHeatmapDowSun": "Su",
+  "@usageHeatmapDowSun": {
+    "description": null
+  },
   "usageTrendTitle": "Daily model usage",
   "@usageTrendTitle": {
     "description": null
@@ -837,6 +875,10 @@
   "@usageDeviceNotReady": {
     "description": null
   },
+  "sessionNotReadyHint": "Select a computer on the page and open a session first",
+  "@sessionNotReadyHint": {
+    "description": "Shown when the page has not entered a workspace yet"
+  },
   "toolboxTitle": "Toolbox",
   "@toolboxTitle": {
     "description": "Title of side panel toolbox drawer"
@@ -882,12 +924,396 @@
   "@toolboxUsageDesc": {
     "description": "Toolbox card description for usage stats"
   },
-  "toolboxMoreComing": "More Tools",
-  "@toolboxMoreComing": {
-    "description": "Placeholder title for future expansion cards"
+  "toolboxModel": "Models",
+  "@toolboxModel": {
+    "description": "Toolbox card title for model settings"
   },
-  "toolboxMoreComingDesc": "Coming soon",
-  "@toolboxMoreComingDesc": {
-    "description": "Placeholder description for future expansion cards"
+  "toolboxModelDesc": "Providers & plan connections",
+  "@toolboxModelDesc": {
+    "description": "Toolbox card description for model settings"
+  },
+  "modelRefresh": "Refresh",
+  "@modelRefresh": {
+    "description": "Model settings page refresh action"
+  },
+  "modelLoadFailed": "Failed to load",
+  "@modelLoadFailed": {
+    "description": "Model settings load error title (remote business error)"
+  },
+  "modelServiceUnavailable": "Page service unavailable",
+  "@modelServiceUnavailable": {
+    "description": "Model settings error when page service container is reloading while LED live"
+  },
+  "modelDeviceNotReady": "Device not ready",
+  "@modelDeviceNotReady": {
+    "description": "Model settings offline banner / error when device not live"
+  },
+  "modelConnSectionTitle": "Plan Connections",
+  "@modelConnSectionTitle": {
+    "description": "Connections section title"
+  },
+  "modelConnPersonal": "Personal Plan",
+  "@modelConnPersonal": {
+    "description": "Connection kind label: individual coding plan"
+  },
+  "modelConnTeam": "Team Plan",
+  "@modelConnTeam": {
+    "description": "Connection kind label: team coding plan"
+  },
+  "modelConnStart": "Starter Plan",
+  "@modelConnStart": {
+    "description": "Connection kind label: start plan"
+  },
+  "modelConnOffPeak": "Off-Peak Plan",
+  "@modelConnOffPeak": {
+    "description": "Connection kind label: off-peak plan"
+  },
+  "modelConnCurrent": "Current",
+  "@modelConnCurrent": {
+    "description": "Badge for the currently selected connection"
+  },
+  "modelConnUnavailable": "Unavailable",
+  "@modelConnUnavailable": {
+    "description": "Badge for a connection whose account state is unavailable"
+  },
+  "modelConnNone": "No plan connected",
+  "@modelConnNone": {
+    "description": "Empty state text when no plan connection exists"
+  },
+  "modelConnLoadFailed": "Failed to read connection selection; current badges may be stale",
+  "@modelConnLoadFailed": {
+    "description": "Footnote when setting.get degraded"
+  },
+  "modelProvidersSectionTitle": "Providers",
+  "@modelProvidersSectionTitle": {
+    "description": "Providers section title"
+  },
+  "modelProvidersEmpty": "No providers",
+  "@modelProvidersEmpty": {
+    "description": "Empty state for provider list / model list"
+  },
+  "modelProviderModelsCount": "{count} models",
+  "@modelProviderModelsCount": {
+    "description": "Provider row subtitle: model count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "modelProviderDisabled": "Disabled",
+  "@modelProviderDisabled": {
+    "description": "Badge for a disabled provider"
+  },
+  "modelProviderUnavailable": "Unavailable",
+  "@modelProviderUnavailable": {
+    "description": "Badge for an unavailable provider (account state)"
+  },
+  "modelDetailBaseUrl": "Endpoint",
+  "@modelDetailBaseUrl": {
+    "description": "Provider detail sheet: base URL label"
+  },
+  "modelDetailKeySuffix": "API Key",
+  "@modelDetailKeySuffix": {
+    "description": "Provider detail sheet: API key suffix label"
+  },
+  "modelDetailModels": "Models",
+  "@modelDetailModels": {
+    "description": "Provider detail sheet: models list label"
+  },
+  "modelTestConnection": "Test",
+  "@modelTestConnection": {
+    "description": "Per-model connectivity test button"
+  },
+  "modelTestOk": "OK",
+  "@modelTestOk": {
+    "description": "Connectivity test success chip"
+  },
+  "modelTestFail": "Failed",
+  "@modelTestFail": {
+    "description": "Connectivity test failure chip"
+  },
+  "modelTestNoWorkspace": "An open workspace is required to test connectivity",
+  "@modelTestNoWorkspace": {
+    "description": "Footnote when no host workspace path is available for testing"
+  },
+  "modelPlanActive": "Plan active",
+  "@modelPlanActive": {
+    "description": "Model settings plan panel"
+  },
+  "modelPlanLoadFailed": "Failed to load plan info",
+  "@modelPlanLoadFailed": {
+    "description": "Model settings plan panel"
+  },
+  "modelQuotaFiveHour": "5-hour quota",
+  "@modelQuotaFiveHour": {
+    "description": "Model settings plan panel"
+  },
+  "modelQuotaWeek": "Weekly quota",
+  "@modelQuotaWeek": {
+    "description": "Model settings plan panel"
+  },
+  "modelQuotaToolCalls": "Tool calls",
+  "@modelQuotaToolCalls": {
+    "description": "Model settings plan panel"
+  },
+  "modelQuotaMcp": "ZCode MCP",
+  "@modelQuotaMcp": {
+    "description": "Model settings plan panel"
+  },
+  "modelQuotaOther": "Other quota",
+  "@modelQuotaOther": {
+    "description": "Model settings plan panel"
+  },
+  "modelModelToggleFailed": "Failed to save model state; reverted",
+  "@modelModelToggleFailed": {
+    "description": "Toast when model enable toggle fails"
+  },
+  "modelProviderAdd": "Add provider",
+  "@modelProviderAdd": {
+    "description": "Add-provider entry tile under providers section / sheet title"
+  },
+  "modelProviderNameHint": "Provider name",
+  "@modelProviderNameHint": {
+    "description": "Provider name input hint"
+  },
+  "modelProviderNameRequired": "Enter a provider name",
+  "@modelProviderNameRequired": {
+    "description": "Validation when provider name is empty"
+  },
+  "modelProviderCreateAction": "Create",
+  "@modelProviderCreateAction": {
+    "description": "Custom provider create button"
+  },
+  "modelTemplateGroupZhipu": "Zhipu family",
+  "@modelTemplateGroupZhipu": {
+    "description": "Template group label: Zhipu family templates"
+  },
+  "modelTemplateGroupOther": "Others",
+  "@modelTemplateGroupOther": {
+    "description": "Template group label: other templates"
+  },
+  "modelEditProvider": "Edit provider",
+  "@modelEditProvider": {
+    "description": "Edit provider entry tile / sheet title"
+  },
+  "modelProviderKeyHint": "New API key (leave empty to keep)",
+  "@modelProviderKeyHint": {
+    "description": "New API key input hint (write-only)"
+  },
+  "modelProviderBaseUrlHint": "Base URL",
+  "@modelProviderBaseUrlHint": {
+    "description": "Base URL input hint"
+  },
+  "modelProviderApiFormat": "API protocol",
+  "@modelProviderApiFormat": {
+    "description": "API protocol selector label"
+  },
+  "modelProviderSaved": "Saved",
+  "@modelProviderSaved": {
+    "description": "Toast when provider edit saved"
+  },
+  "modelProviderSaveFailed": "Save failed; try again",
+  "@modelProviderSaveFailed": {
+    "description": "Toast when provider edit save failed / receipt unusable"
+  },
+  "modelProviderDeleteAction": "Delete provider",
+  "@modelProviderDeleteAction": {
+    "description": "Delete provider row / confirm action"
+  },
+  "modelProviderDeleteTitle": "Delete provider?",
+  "@modelProviderDeleteTitle": {
+    "description": "Delete provider confirm dialog title"
+  },
+  "modelProviderDeleteBody": "“{name}” and its model config will be removed from this device.",
+  "@modelProviderDeleteBody": {
+    "description": "Delete provider confirm dialog body",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "modelProviderDeleteFailed": "Delete failed; try again",
+  "@modelProviderDeleteFailed": {
+    "description": "Toast when provider delete failed"
+  },
+  "modelAddModel": "Add model",
+  "@modelAddModel": {
+    "description": "Add-model row in provider detail / dialog title"
+  },
+  "modelDraftEditTitle": "Edit model settings",
+  "@modelDraftEditTitle": {
+    "description": "Model parameter sheet title in edit mode"
+  },
+  "modelDraftSmartConfig": "Smart configuration",
+  "@modelDraftSmartConfig": {
+    "description": "Follow-recommended-config switch label"
+  },
+  "modelDraftSmartConfigHelp": "Matches recommended configuration using the model ID, Base URL, and API format. ZCode continually updates recommendations and automatically syncs them to you.\nWhen you manually change a setting, that setting becomes manually managed and stops following recommendation updates; other settings remain managed by smart configuration.",
+  "@modelDraftSmartConfigHelp": {
+    "description": "Help text under the smart-config switch"
+  },
+  "modelDraftModelId": "Model ID",
+  "@modelDraftModelId": {
+    "description": "Model ID field label / hint"
+  },
+  "modelDraftContextWindow": "Context window",
+  "@modelDraftContextWindow": {
+    "description": "Context window field label"
+  },
+  "modelDraftContextWindowHelp": "The context capacity the model can process at once, in tokens. ZCode uses this to manage context.\nDo not exceed the model's actual limit.",
+  "@modelDraftContextWindowHelp": {
+    "description": "Help text under the context window field"
+  },
+  "modelDraftContextWindowBadge": "Context window: {value}",
+  "@modelDraftContextWindowBadge": {
+    "description": "Model row badge for the effective context window",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "modelDraftMaxOutputTokens": "Max output tokens",
+  "@modelDraftMaxOutputTokens": {
+    "description": "Max output tokens field label"
+  },
+  "modelDraftMaxOutputTokensHelp": "The maximum number of tokens a single model request may generate.\nDo not exceed the model's actual limit.",
+  "@modelDraftMaxOutputTokensHelp": {
+    "description": "Help text under the max output tokens field"
+  },
+  "modelDraftInputModalities": "Input types",
+  "@modelDraftInputModalities": {
+    "description": "Input modalities section label"
+  },
+  "modelDraftInputModalitiesHelp": "Set the content types the model can receive:\n- Text: Receives text content. Required.\n- Images: Receives image content.\n- Video: Receives video content.\n- PDF: Receives PDF documents directly.",
+  "@modelDraftInputModalitiesHelp": {
+    "description": "Help text under the input modalities chips"
+  },
+  "modelModalityText": "Text",
+  "@modelModalityText": {
+    "description": "Input modality: text"
+  },
+  "modelModalityImage": "Image",
+  "@modelModalityImage": {
+    "description": "Input modality: image"
+  },
+  "modelModalityVideo": "Video",
+  "@modelModalityVideo": {
+    "description": "Input modality: video"
+  },
+  "modelModalityPdf": "PDF",
+  "@modelModalityPdf": {
+    "description": "Input modality: PDF"
+  },
+  "modelDraftCapabilities": "Model capabilities",
+  "@modelDraftCapabilities": {
+    "description": "Model capabilities section label"
+  },
+  "modelDraftCapabilitiesHelp": "- Structured output: Supports JSON Schema constraints on output fields, types, and structure.\n- Native web search: Supports the model API's built-in web search capability.\n- Mid-conversation system messages: Supports inserting system instructions during a conversation.\nDo not enable capabilities the model does not support.",
+  "@modelDraftCapabilitiesHelp": {
+    "description": "Help text under the capability chips"
+  },
+  "modelDraftCapabilityJsonSchema": "Structured output",
+  "@modelDraftCapabilityJsonSchema": {
+    "description": "Capability: structured output"
+  },
+  "modelDraftCapabilityWebSearch": "Native web search",
+  "@modelDraftCapabilityWebSearch": {
+    "description": "Capability: native web search"
+  },
+  "modelDraftCapabilityMidSystem": "Mid-conversation system messages",
+  "@modelDraftCapabilityMidSystem": {
+    "description": "Capability: mid-conversation system messages"
+  },
+  "modelDraftReasoning": "Reasoning settings",
+  "@modelDraftReasoning": {
+    "description": "Reasoning section label"
+  },
+  "modelDraftReasoningLevels": "Reasoning levels (low to high)",
+  "@modelDraftReasoningLevels": {
+    "description": "Reasoning levels list label"
+  },
+  "modelDraftReasoningLevelsHelp": "Set the reasoning levels available in chat. They must be ordered from lowest to highest reasoning effort.\nDo not configure reasoning levels the model does not support.",
+  "@modelDraftReasoningLevelsHelp": {
+    "description": "Help text under the reasoning levels editor"
+  },
+  "modelDraftReasoningLevelAdd": "Add reasoning level",
+  "@modelDraftReasoningLevelAdd": {
+    "description": "Add-reasoning-level action"
+  },
+  "modelDraftReasoningMapping": "Reasoning parameter mapping",
+  "@modelDraftReasoningMapping": {
+    "description": "Reasoning level parameter mapping label"
+  },
+  "modelDraftRestoreDefault": "Restore default",
+  "@modelDraftRestoreDefault": {
+    "description": "Restore-default action in the model sheet"
+  },
+  "modelDraftOverridden": "Overridden",
+  "@modelDraftOverridden": {
+    "description": "Badge marking a field manually overridden"
+  },
+  "modelDraftInvalidId": "Model ID is required",
+  "@modelDraftInvalidId": {
+    "description": "Validation: model ID required"
+  },
+  "modelDraftInvalidContextWindow": "Context window must be a positive integer",
+  "@modelDraftInvalidContextWindow": {
+    "description": "Validation: context window must be a positive integer"
+  },
+  "modelDraftInvalidMaxOutputTokens": "Max output tokens must be a positive integer",
+  "@modelDraftInvalidMaxOutputTokens": {
+    "description": "Validation: max output tokens must be a positive integer"
+  },
+  "modelDraftInvalidInputModalities": "Text input type is required",
+  "@modelDraftInvalidInputModalities": {
+    "description": "Validation: text input type required"
+  },
+  "modelDraftInvalidReasoningLevelValues": "Reasoning levels cannot be empty or duplicated",
+  "@modelDraftInvalidReasoningLevelValues": {
+    "description": "Validation: reasoning levels empty or duplicated"
+  },
+  "modelDraftInvalidReasoningLevelMap": "Reasoning parameter mapping is invalid",
+  "@modelDraftInvalidReasoningLevelMap": {
+    "description": "Validation: reasoning parameter mapping invalid"
+  },
+  "modelModelIncomplete": "Model configuration is incomplete",
+  "@modelModelIncomplete": {
+    "description": "Inline hint under a model row whose config is incomplete"
+  },
+  "modelModelSaveFailed": "Save failed. Please try again.",
+  "@modelModelSaveFailed": {
+    "description": "Toast / inline error when model draft save failed"
+  },
+  "modelModelAdded": "Model added",
+  "@modelModelAdded": {
+    "description": "Toast when model added"
+  },
+  "modelModelDeleteAction": "Delete",
+  "@modelModelDeleteAction": {
+    "description": "Delete-model confirm action"
+  },
+  "modelModelDeleteTitle": "Delete model?",
+  "@modelModelDeleteTitle": {
+    "description": "Delete-model confirm dialog title"
+  },
+  "modelModelDeleteBody": "“{model}” will be removed from this provider.",
+  "@modelModelDeleteBody": {
+    "description": "Delete-model confirm dialog body",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelModelDeleted": "Model deleted",
+  "@modelModelDeleted": {
+    "description": "Toast when model deleted"
+  },
+  "modelModelDeleteFailed": "Failed to delete model",
+  "@modelModelDeleteFailed": {
+    "description": "Toast when model delete failed"
   }
 }

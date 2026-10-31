@@ -22,14 +22,16 @@ abstract final class ResumeHealthPolicy {
   static bool isBackgrounded(AppLifecycleState state) =>
       _backgroundStates.contains(state);
 
+  static const Duration writePathProbeThreshold = Duration(seconds: 30);
+
   static ResumeHealthAction decide({
     required Duration backgroundFor,
     required bool rendererGone,
     required bool live,
     required Duration sinceWsActivity,
   }) {
-    if (backgroundFor < quietThreshold) return ResumeHealthAction.ok;
     if (rendererGone) return ResumeHealthAction.reload;
+    if (backgroundFor < quietThreshold) return ResumeHealthAction.ok;
     final healthy = live && sinceWsActivity < quietThreshold;
     return healthy ? ResumeHealthAction.ok : ResumeHealthAction.graceThenReload;
   }
@@ -43,6 +45,8 @@ enum ResumeSignal {
   armGrace,
 
   keepGrace,
+
+  verifyWritePath,
 }
 
 class ResumeWatch {
@@ -71,7 +75,10 @@ class ResumeWatch {
       sinceWsActivity: sinceWsActivity,
     )) {
       case ResumeHealthAction.ok:
-        return _graceArmed ? ResumeSignal.keepGrace : ResumeSignal.none;
+        if (_graceArmed) return ResumeSignal.keepGrace;
+        return backgroundFor >= ResumeHealthPolicy.writePathProbeThreshold
+            ? ResumeSignal.verifyWritePath
+            : ResumeSignal.none;
       case ResumeHealthAction.reload:
         _graceArmed = false;
         return ResumeSignal.reloadNow;

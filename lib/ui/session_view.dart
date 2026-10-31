@@ -19,12 +19,15 @@ import '../services/resume_health.dart';
 import '../services/service_probe.dart';
 import '../services/session_jump.dart';
 import '../services/web_theme.dart';
+import '../services/webview_profile.dart';
 import '../state/active_session.dart';
 import '../state/app_lifecycle.dart';
 import '../state/automation.dart';
 import '../state/claim_entry.dart';
 import '../state/event_feed.dart';
 import '../state/notification_prefs.dart';
+import '../state/resume_reload.dart';
+import '../state/service_readiness.dart';
 import '../state/session_index.dart';
 import '../state/session_pool.dart';
 import '../state/session_status.dart';
@@ -32,6 +35,7 @@ import '../theme.dart';
 import '../models/device_label.dart';
 import 'automation_page.dart';
 import 'claim_page.dart';
+import 'model_settings_page.dart';
 import 'session_panel.dart';
 import 'sheet_shell.dart';
 import 'status_led.dart';
@@ -60,8 +64,11 @@ class _SessionViewState extends ConsumerState<SessionView> {
   ActiveSessionNotifier? _activeSessionNotifier;
   AutomationNotifier? _automationNotifier;
   ClaimEntryNotifier? _claimEntryNotifier;
+  ServiceReadinessNotifier? _readinessNotifier;
 
   bool _claimEntryProbed = false;
+
+  int _readinessEpoch = 0;
 
   RpcBridge? _rpcBridge;
 
@@ -72,6 +79,9 @@ class _SessionViewState extends ConsumerState<SessionView> {
   bool _rendererGone = false;
   DateTime _lastWsActivity = DateTime.now();
   Timer? _resumeGrace;
+
+  int _resumeProbeSeq = 0;
+  bool _resumeProbeInFlight = false;
 
   final StateDiffer _stateDiffer = StateDiffer();
 
@@ -92,6 +102,7 @@ class _SessionViewState extends ConsumerState<SessionView> {
     _activeSessionNotifier ??= ref.read(activeSessionProvider.notifier);
     _automationNotifier ??= ref.read(automationProvider.notifier);
     _claimEntryNotifier ??= ref.read(claimEntryProvider.notifier);
+    _readinessNotifier ??= ref.read(serviceReadinessProvider.notifier);
     _startDispatch();
   }
 
@@ -128,6 +139,11 @@ class _SessionViewState extends ConsumerState<SessionView> {
   void _report(SessionStatus status) =>
       _statusNotifier?.report(widget.device.id, status);
 
+  void _reportServiceReadiness(ServiceReadiness readiness) {
+    if (!mounted) return;
+    _readinessNotifier?.report(widget.device.id, readiness);
+  }
+
   void _onWsEvent(String body) {
     if (!mounted) return;
     _lastWsActivity = DateTime.now();
@@ -161,10 +177,13 @@ class _SessionViewState extends ConsumerState<SessionView> {
       case ResumeSignal.none:
       case ResumeSignal.keepGrace:
         break;
+      case ResumeSignal.verifyWritePath:
+        unawaited(_verifyWritePath());
       case ResumeSignal.reloadNow:
         _rendererGone = false;
         _manualReload('resume-renderer-gone');
       case ResumeSignal.armGrace:
+        unawaited(_verifyWritePath());
         _resumeGrace?.cancel();
         _resumeGrace = Timer(ResumeHealthPolicy.grace, () {
           _resumeGrace = null;
@@ -180,9 +199,45 @@ class _SessionViewState extends ConsumerState<SessionView> {
             'wsIdle=${DateTime.now().difference(_lastWsActivity).inSeconds}s '
             'healthy=$healthy',
           );
-          if (!healthy) _manualReload('resume-grace-expired');
+          if (!healthy) {
+            _manualReload('resume-grace-expired');
+          } else if (!_resumeProbeInFlight) {
+            unawaited(_verifyWritePath());
+          }
         });
     }
+  }
+
+  Future<void> _verifyWritePath() async {
+    final bridge = _rpcBridge;
+    if (bridge == null || !mounted || _resumeProbeInFlight) return;
+    final seq = ++_resumeProbeSeq;
+    _resumeProbeInFlight = true;
+    debugPrint('[zr-resume] write-path probe arm seq=$seq');
+    try {
+      await bridge.call(
+        'off-peak-task',
+        'getCodingPlanSupport',
+        timeout: const Duration(seconds: 25),
+      );
+      debugPrint('[zr-resume] write-path probe ok');
+    } on RpcRemoteException catch (e) {
+      debugPrint('[zr-resume] write-path probe rsp: ${e.message}');
+      if (e.message.contains('no-services')) {
+        _reloadOnWriteDead(seq);
+      }
+    } catch (e) {
+      debugPrint('[zr-resume] write-path probe dead: $e');
+      _reloadOnWriteDead(seq);
+    } finally {
+      _resumeProbeInFlight = false;
+    }
+  }
+
+  void _reloadOnWriteDead(int seq) {
+    if (!mounted || seq != _resumeProbeSeq || _loading) return;
+    _manualReload('resume-write-dead');
+    ref.read(resumeReloadEpochProvider.notifier).bump();
   }
 
   void _goHome() => ref
@@ -314,8 +369,18 @@ class _SessionViewState extends ConsumerState<SessionView> {
   Future<void> _runServiceProbe() async {
     final bridge = _rpcBridge;
     if (bridge == null) return;
+    final epoch = _readinessEpoch;
     try {
-      await ServiceProbe.run(bridge);
+      final report = await ServiceProbe.run(bridge);
+      if (widget.device.kind != DeviceKind.v2) return;
+      if (!mounted || epoch != _readinessEpoch) return;
+      final dump = report['dump'];
+      if (dump is Map && dump['ok'] == true) {
+        _reportServiceReadiness(ServiceReadiness.ready);
+      } else if (dump is Map &&
+          '${dump['error'] ?? ''}'.contains('no-services')) {
+        _reportServiceReadiness(ServiceReadiness.unavailable);
+      }
     } catch (_) {}
   }
 
@@ -360,6 +425,7 @@ class _SessionViewState extends ConsumerState<SessionView> {
 
   Future<void> _manualReload([String via = 'manual']) async {
     debugPrint('[zr-resume] reload via=$via');
+    _resumeProbeSeq++;
     setState(() {
       _loading = true;
       _errorShown = false;
@@ -513,9 +579,48 @@ class _SessionViewState extends ConsumerState<SessionView> {
     } catch (_) {}
   }
 
+  Future<bool> _ensureServiceReady() async {
+    final readiness =
+        ref.read(serviceReadinessProvider)[widget.device.id] ??
+        ServiceReadiness.unknown;
+    if (!serviceNeedsProbe(readiness)) return true;
+    final ready = await _probeServiceReady();
+    if (ready != false) return true;
+    _showSessionNotReady();
+    return false;
+  }
+
+  Future<bool?> _probeServiceReady() async {
+    final bridge = _rpcBridge;
+    if (bridge == null) return null;
+    final epoch = _readinessEpoch;
+    final ready = await ServiceProbe.checkReady(bridge);
+    if (!mounted || epoch != _readinessEpoch) return null;
+    if (ready == true) {
+      _reportServiceReadiness(ServiceReadiness.ready);
+    } else if (ready == false) {
+      _reportServiceReadiness(ServiceReadiness.unavailable);
+    }
+    return ready;
+  }
+
+  void _showSessionNotReady() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.sessionNotReadyHint),
+      ),
+    );
+  }
+
   Future<void> _openAutomation() async {
     final bridge = _rpcBridge;
-    if (bridge == null) return;
+    if (bridge == null) {
+      _showSessionNotReady();
+      return;
+    }
+    if (!await _ensureServiceReady()) return;
+    if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => AutomationPage(device: widget.device, bridge: bridge),
@@ -525,16 +630,12 @@ class _SessionViewState extends ConsumerState<SessionView> {
 
   Future<void> _openClaim() async {
     final bridge = _rpcBridge;
-    if (bridge == null || !mounted) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.claimUnavailable),
-          ),
-        );
-      }
+    if (bridge == null) {
+      _showSessionNotReady();
       return;
     }
+    if (!await _ensureServiceReady()) return;
+    if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => ClaimPage(device: widget.device, bridge: bridge),
@@ -544,19 +645,30 @@ class _SessionViewState extends ConsumerState<SessionView> {
 
   Future<void> _openUsage() async {
     final bridge = _rpcBridge;
-    if (bridge == null || !mounted) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.usageServiceUnavailable),
-          ),
-        );
-      }
+    if (bridge == null) {
+      _showSessionNotReady();
       return;
     }
+    if (!await _ensureServiceReady()) return;
+    if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => UsagePage(device: widget.device, bridge: bridge),
+      ),
+    );
+  }
+
+  Future<void> _openModelSettings() async {
+    final bridge = _rpcBridge;
+    if (bridge == null) {
+      _showSessionNotReady();
+      return;
+    }
+    if (!await _ensureServiceReady()) return;
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ModelSettingsPage(device: widget.device, bridge: bridge),
       ),
     );
   }
@@ -607,6 +719,7 @@ class _SessionViewState extends ConsumerState<SessionView> {
     _activeSessionNotifier?.forget(widget.device.id);
     _automationNotifier?.forget(widget.device.id);
     _claimEntryNotifier?.forget(widget.device.id);
+    _readinessNotifier?.forget(widget.device.id);
     _rpcBridge?.dispose();
     _dispatchServer?.dispose();
     _resumeGrace?.cancel();
@@ -722,6 +835,7 @@ class _SessionViewState extends ConsumerState<SessionView> {
             onAutomationPressed: _openAutomation,
             onClaimPressed: _openClaim,
             onUsagePressed: _openUsage,
+            onModelSettingsPressed: _openModelSettings,
           ),
           IconButton(
             icon: const Icon(Icons.article_outlined),
@@ -788,6 +902,45 @@ class _SessionViewState extends ConsumerState<SessionView> {
                   )
                 : const SizedBox.shrink(),
           ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 240),
+            curve: Curves.easeOutCubic,
+            child: shouldShowIsolationFallback(
+              kind: widget.device.kind,
+              multiProfileSupported:
+                  ref.watch(multiProfileSupportedProvider).value ?? true,
+            )
+                ? Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: context.zt.warn.withValues(alpha: 0.10),
+                      border: Border(
+                        left: BorderSide(color: context.zt.warn, width: 3),
+                      ),
+                    ),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.warning_amber_rounded,
+                          size: 20,
+                          color: context.zt.warn,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            l10n.webviewIsolationUnsupportedHint,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: context.zt.textLo,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
           Expanded(
             child: ColoredBox(
               color: context.zt.bg,
@@ -802,6 +955,7 @@ class _SessionViewState extends ConsumerState<SessionView> {
                         supportZoom: false,
                         transparentBackground: true,
                         useHybridComposition: false,
+                        androidWebProfile: webProfileNameFor(widget.device),
                       ),
                       onRenderProcessGone: (_, detail) {
                         debugPrint('[zr-resume] rendererGone detail=$detail');
@@ -826,6 +980,13 @@ class _SessionViewState extends ConsumerState<SessionView> {
                         _rpcBridge = RpcBridge(
                           deviceId: widget.device.id,
                           dispatch: _dispatchServer!,
+                          onServiceState: widget.device.kind == DeviceKind.v2
+                              ? (ready) => _reportServiceReadiness(
+                                  ready
+                                      ? ServiceReadiness.ready
+                                      : ServiceReadiness.unavailable,
+                                )
+                              : null,
                         );
                         controller.addJavaScriptHandler(
                           handlerName: 'zrEvents',
@@ -873,6 +1034,8 @@ class _SessionViewState extends ConsumerState<SessionView> {
                         );
                         _rpcBridge?.resetOffPeakProbe();
                         _probeArmed = true;
+                        _readinessEpoch++;
+                        _readinessNotifier?.reset(widget.device.id);
                         _claimEntryProbed = false;
                         _claimEntryNotifier?.reset(widget.device.id);
                         }
@@ -883,6 +1046,9 @@ class _SessionViewState extends ConsumerState<SessionView> {
                           _syncWebTheme(
                             Theme.of(context).brightness == Brightness.dark,
                           );
+                          if (widget.device.kind == DeviceKind.v2) {
+                            unawaited(_probeServiceReady());
+                          }
                         }
                       },
                       onReceivedError: (controller, request, error) async {
@@ -933,12 +1099,14 @@ class _ToolboxEntryButton extends ConsumerWidget {
     required this.onAutomationPressed,
     required this.onClaimPressed,
     required this.onUsagePressed,
+    required this.onModelSettingsPressed,
   });
 
   final RemoteDevice device;
   final VoidCallback onAutomationPressed;
   final VoidCallback onClaimPressed;
   final VoidCallback onUsagePressed;
+  final VoidCallback onModelSettingsPressed;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -961,6 +1129,7 @@ class _ToolboxEntryButton extends ConsumerWidget {
         onAutomationPressed: onAutomationPressed,
         onClaimPressed: onClaimPressed,
         onUsagePressed: onUsagePressed,
+        onModelSettingsPressed: onModelSettingsPressed,
       ),
     );
   }

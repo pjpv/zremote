@@ -2,7 +2,7 @@ name: zremote
 description: "ZRemote — ZCode 桌面端远程控制伴侣 App：扫码导入，多设备并行会话，生物识别门禁。"
 publish_to: 'none'
 
-version: 1.5.0+8
+version: 1.7.0+9
 
 environment:
   sdk: ^3.10.4
@@ -31,6 +31,12 @@ dev_dependencies:
     sdk: flutter
 
   flutter_lints: ^6.0.0
+
+dependency_overrides:
+  flutter_inappwebview_platform_interface:
+    path: third_party/flutter_inappwebview_platform_interface
+  flutter_inappwebview_android:
+    path: third_party/flutter_inappwebview_android
 
 flutter:
 

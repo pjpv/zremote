@@ -17,6 +17,7 @@ import '../state/event_feed.dart';
 import '../theme.dart';
 import '../models/device_label.dart';
 import 'bevel_card.dart';
+import 'hw_chip.dart';
 import 'inlaid_well.dart';
 import 'section_label.dart';
 import 'sheet_shell.dart';
@@ -395,7 +396,7 @@ class _PasteDialogState extends State<_PasteDialog> {
               autofocus: true,
               style: zrMono(fontSize: 13, weight: FontWeight.w400),
               decoration: InputDecoration(
-                hintText: 'https://zcode.z.ai/remote/v4?sid=...&hash=...',
+                hintText: l10n.pasteFieldHint,
                 counterText: '',
                 suffixIcon: value.text.isEmpty
                     ? null
@@ -433,7 +434,11 @@ class _PasteDialogState extends State<_PasteDialog> {
               if (parsed == null) return const SizedBox(height: 8);
               return Padding(
                 padding: const EdgeInsets.only(top: 8),
-                child: ZrInterpreterBar(text: l10n.pasteValidFormat),
+                child: ZrInterpreterBar(
+                  text: parsed.kind == DeviceKind.v2
+                      ? l10n.v2LoginHint
+                      : l10n.pasteValidFormat,
+                ),
               );
             },
           ),
@@ -1087,6 +1092,10 @@ class _DeviceCard extends ConsumerWidget {
                         ),
                       ),
                     ),
+                    if (device.kind == DeviceKind.v2) ...[
+                      const SizedBox(width: 6),
+                      HwChip(text: l10n.deviceV2Badge),
+                    ],
                     const SizedBox(width: 8),
                     ZrStatusChip(
                       label: chipLabel,

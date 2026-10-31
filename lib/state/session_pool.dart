@@ -84,6 +84,7 @@ class DeviceListNotifier extends Notifier<List<RemoteDevice>> {
       params: parsed.params,
       label: target.label.isNotEmpty ? target.label : parsed.label,
       createdAt: target.createdAt,
+      kind: parsed.kind,
     );
     await DeviceStore.instance.update(updated);
     state = [

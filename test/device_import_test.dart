@@ -2,12 +2,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:zremote/models/device.dart';
 import 'package:zremote/services/device_import.dart';
 
-RemoteDevice _device(String sid) => RemoteDevice(
+RemoteDevice _device(String sid, {DeviceKind kind = DeviceKind.legacy}) =>
+    RemoteDevice(
       id: 'id-$sid',
       baseUrl: 'https://zcode.z.ai/remote/v4',
-      params: {'sid': sid, 'hash': 'h'},
+      params: kind == DeviceKind.v2
+          ? {'sid': sid, 'app_version': '3.16.1'}
+          : {'sid': sid, 'hash': 'h'},
       label: '',
       createdAt: DateTime(2026, 1, 1),
+      kind: kind,
     );
 
 void main() {
@@ -30,6 +34,19 @@ void main() {
 
     test('空列表不命中', () {
       expect(findDuplicateBySid([], _device('AAA')), isNull);
+    });
+
+    test('V2 条目同 sid 仍命中，且跨形态（legacy/V2）同样视为重复', () {
+      final v2 = [_device('AAA', kind: DeviceKind.v2)];
+      expect(
+        findDuplicateBySid(v2, _device('AAA', kind: DeviceKind.v2)),
+        same(v2.first),
+      );
+      expect(
+        findDuplicateBySid(v2, _device('AAA')),
+        same(v2.first),
+        reason: '同一桌面的两种链接形态不能双挂中继',
+      );
     });
   });
 

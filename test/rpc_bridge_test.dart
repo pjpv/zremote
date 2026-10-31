@@ -399,6 +399,148 @@ void main() {
       expect(tokenless.statusCode, 404);
     });
   });
+
+  group('服务就绪回调（plan 021）', () {
+    test('调用成功 → onServiceState(true)', () async {
+      final dispatch = _FakeDispatch();
+      final states = <bool>[];
+      final bridge = RpcBridge(
+        deviceId: 'd1',
+        dispatch: dispatch,
+        onServiceState: states.add,
+      );
+      final pending = bridge.call('zcode-agent', 'listAllAutomations');
+      await pumpEventQueue();
+      final c = callOf(dispatch.commands.single);
+      bridge.onSvcResult(jsonEncode({'i': c.id, 'ok': true, 'r': '[]'}));
+      await pending;
+      expect(states, [true]);
+    });
+
+    test('no-services → onServiceState(false) 且调用方收到 RpcRemoteException',
+        () async {
+      final dispatch = _FakeDispatch();
+      final states = <bool>[];
+      final bridge = RpcBridge(
+        deviceId: 'd1',
+        dispatch: dispatch,
+        onServiceState: states.add,
+      );
+      final pending = bridge.call('zcode-agent', 'listAllAutomations');
+      await pumpEventQueue();
+      final c = callOf(dispatch.commands.single);
+      bridge.onSvcResult(
+        jsonEncode({'i': c.id, 'ok': false, 'e': 'no-services'}),
+      );
+      await expectLater(pending, throwsA(isA<RpcRemoteException>()));
+      expect(states, [false]);
+    });
+
+    test('其它 host 错误不改变就绪态', () async {
+      final dispatch = _FakeDispatch();
+      final states = <bool>[];
+      final bridge = RpcBridge(
+        deviceId: 'd1',
+        dispatch: dispatch,
+        onServiceState: states.add,
+      );
+      final pending = bridge.call('zcode-agent', 'listAllAutomations');
+      await pumpEventQueue();
+      final c = callOf(dispatch.commands.single);
+      bridge.onSvcResult(
+        jsonEncode({'i': c.id, 'ok': false, 'e': 'sqlite busy'}),
+      );
+      await expectLater(pending, throwsA(isA<RpcRemoteException>()));
+      expect(states, isEmpty);
+    });
+
+    test('先 no-services 后成功 → false 后 true（可恢复）', () async {
+      final dispatch = _FakeDispatch();
+      final states = <bool>[];
+      final bridge = RpcBridge(
+        deviceId: 'd1',
+        dispatch: dispatch,
+        onServiceState: states.add,
+      );
+      final p1 = bridge.call('zcode-agent', 'listAllAutomations');
+      await pumpEventQueue();
+      bridge.onSvcResult(
+        jsonEncode({'i': callOf(dispatch.commands[0]).id, 'ok': false,
+          'e': 'no-services'}),
+      );
+      await expectLater(p1, throwsA(isA<RpcRemoteException>()));
+
+      final p2 = bridge.call('zcode-agent', 'listAllAutomations');
+      await pumpEventQueue();
+      bridge.onSvcResult(
+        jsonEncode({'i': callOf(dispatch.commands[1]).id, 'ok': true,
+          'r': '[]'}),
+      );
+      await p2;
+      expect(states, [false, true]);
+    });
+
+    test('超时不改变就绪态', () async {
+      final dispatch = _FakeDispatch();
+      final states = <bool>[];
+      final bridge = RpcBridge(
+        deviceId: 'd1',
+        dispatch: dispatch,
+        onServiceState: states.add,
+      );
+      await expectLater(
+        bridge.call(
+          'zcode-agent',
+          'listAllAutomations',
+          timeout: const Duration(milliseconds: 30),
+        ),
+        throwsA(isA<RpcTimeoutException>()),
+      );
+      expect(states, isEmpty);
+    });
+
+    test('zr-probe 的 no-services 不触发回调（探针自行上报）', () async {
+      final dispatch = _FakeDispatch();
+      final states = <bool>[];
+      final bridge = RpcBridge(
+        deviceId: 'd1',
+        dispatch: dispatch,
+        onServiceState: states.add,
+      );
+      final pending = bridge.callArgs('zr-probe', 'dump', args: const []);
+      await pumpEventQueue();
+      bridge.onSvcResult(
+        jsonEncode({
+          'i': callOf(dispatch.commands.single).id,
+          'ok': false,
+          'e': 'no-services',
+        }),
+      );
+      await expectLater(pending, throwsA(isA<RpcRemoteException>()));
+      expect(states, isEmpty);
+    });
+
+    test('zr-captcha 成功不触发回调（伪服务不证明容器在）', () async {
+      final dispatch = _FakeDispatch();
+      final states = <bool>[];
+      final bridge = RpcBridge(
+        deviceId: 'd1',
+        dispatch: dispatch,
+        onServiceState: states.add,
+      );
+      final pending = bridge.call('zr-captcha', 'run');
+      await pumpEventQueue();
+      bridge.onSvcResult(
+        jsonEncode({
+          'i': callOf(dispatch.commands.single).id,
+          'ok': true,
+          'r': '{"ok":true}',
+        }),
+      );
+      await pending;
+      expect(states, isEmpty);
+    });
+  });
 }
 
 Future<String> _poll(

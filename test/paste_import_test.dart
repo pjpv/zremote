@@ -160,4 +160,37 @@ void main() {
     );
     expect(find.textContaining('/ 256 字符'), findsOneWidget);
   });
+
+  testWidgets('V2 链接可导入并显示 V2 登录提示与徽标', (tester) async {
+    await _pumpManage(tester, [_device('testold19')]);
+    await tester.pumpAndSettle();
+
+    const v2Url =
+        'https://zcode.z.ai/remote/v4?app_version=3.16.1&sid=d_test019'
+        '&mid=00000000-0000-4000-8000-000000000000&name=TEST-DESKTOP';
+
+    await tester.tap(find.byTooltip('扫码导入'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('粘贴链接导入'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), v2Url);
+    await tester.pump();
+
+    expect(find.text('V2 链接已识别；进入后需在页面内登录账号'), findsOneWidget);
+    expect(find.text('格式校验通过'), findsNothing);
+
+    await tester.tap(
+      find
+          .ancestor(
+            of: find.textContaining('建立连接并导入'),
+            matching: find.byType(TactileButton),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('TEST-DESKTOP'), findsOneWidget);
+    expect(find.text('V2 账号'), findsOneWidget);
+    expect(find.text('设备testold19'), findsOneWidget);
+  });
 }

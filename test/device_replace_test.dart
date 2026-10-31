@@ -31,6 +31,15 @@ RemoteDevice _parsed({String? label}) => RemoteDevice(
   createdAt: DateTime(2030, 5, 5),
 );
 
+RemoteDevice _v2Parsed() => RemoteDevice(
+  id: 'fresh-uuid-from-parser',
+  baseUrl: 'https://new.example/remote/v4',
+  params: const {'sid': 'd_testnew', 'app_version': '3.16.1'},
+  label: '',
+  createdAt: DateTime(2030, 5, 5),
+  kind: DeviceKind.v2,
+);
+
 ProviderContainer _container(List<RemoteDevice> devices) =>
     ProviderContainer(
       overrides: [deviceListProvider.overrideWith(() => _StubDevices(devices))],
@@ -88,6 +97,7 @@ void main() {
       expect(state[0].baseUrl, 'https://new.example/remote/v5');
       expect(state[0].label, '我家');
       expect(state[0].createdAt, DateTime(2026, 1, 1));
+      expect(state[0].kind, DeviceKind.legacy);
       expect(state[1].id, 'b');
 
       final stored = await DeviceStore.instance.loadAll();
@@ -112,6 +122,20 @@ void main() {
       await c.read(deviceListProvider.notifier).replaceLink('gone', _parsed());
 
       expect(c.read(deviceListProvider).first.sid, 'old-sid');
+    });
+
+    test('legacy 条目换成 V2 链接：kind 跟随新链接', () async {
+      final c = _container([_device('a')]);
+      addTearDown(c.dispose);
+
+      await c.read(deviceListProvider.notifier).replaceLink('a', _v2Parsed());
+
+      final updated = c.read(deviceListProvider).single;
+      expect(updated.kind, DeviceKind.v2);
+      expect(updated.sid, 'd_testnew');
+      expect(updated.params.containsKey('hash'), isFalse);
+      expect(updated.id, 'a');
+      expect(updated.createdAt, DateTime(2026, 1, 1));
     });
   });
 }

@@ -58,31 +58,30 @@ class SessionIndexNotifier
     final prev = _tasks[deviceId];
     _tasks[deviceId] = {
       for (final t in taskEntries)
-        t.sessionId: preservePinned &&
-                !t.pinned &&
-                (prev?[t.sessionId]?.pinned ?? false)
+        t.sessionId:
+            preservePinned && !t.pinned && (prev?[t.sessionId]?.pinned ?? false)
             ? _withPinned(t, true)
             : t,
     };
     _rebuild(deviceId);
   }
 
-  static SessionState _withPinned(SessionState s, bool pinned) =>
-      SessionState(
-        sessionId: s.sessionId,
-        title: s.title,
-        phase: s.phase,
-        sessionEnded: s.sessionEnded,
-        permissionCount: s.permissionCount,
-        userInputCount: s.userInputCount,
-        interactionKind: s.interactionKind,
-        toolName: s.toolName,
-        description: s.description,
-        lastActivityAt: s.lastActivityAt,
-        createdAt: s.createdAt,
-        workspace: s.workspace,
-        pinned: pinned,
-      );
+  static SessionState _withPinned(SessionState s, bool pinned) => SessionState(
+    sessionId: s.sessionId,
+    title: s.title,
+    phase: s.phase,
+    sessionEnded: s.sessionEnded,
+    permissionCount: s.permissionCount,
+    userInputCount: s.userInputCount,
+    interactionKind: s.interactionKind,
+    toolName: s.toolName,
+    description: s.description,
+    lastActivityAt: s.lastActivityAt,
+    createdAt: s.createdAt,
+    workspace: s.workspace,
+    workspacePath: s.workspacePath,
+    pinned: pinned,
+  );
 
   void removeSessions(String deviceId, List<String> sessionIds) {
     if (sessionIds.isEmpty) return;
@@ -114,10 +113,7 @@ class SessionIndexNotifier
       state = Map.of(state)..remove(deviceId);
       return;
     }
-    final ids = <String>{
-      ...?tasks?.keys,
-      ...?sessions?.keys,
-    };
+    final ids = <String>{...?tasks?.keys, ...?sessions?.keys};
     final merged = <String, SessionState>{
       for (final id in ids) id: _mergeTaskSession(tasks?[id], sessions?[id]),
     };
@@ -140,15 +136,17 @@ class SessionIndexNotifier
       lastActivityAt: s.lastActivityAt ?? task.lastActivityAt,
       createdAt: s.createdAt ?? task.createdAt,
       workspace: task.workspace ?? s.workspace,
+      workspacePath: task.workspacePath ?? s.workspacePath,
       pinned: task.pinned,
     );
   }
 }
 
 final sessionIndexProvider =
-    NotifierProvider<SessionIndexNotifier, Map<String, Map<String, SessionState>>>(
-      SessionIndexNotifier.new,
-    );
+    NotifierProvider<
+      SessionIndexNotifier,
+      Map<String, Map<String, SessionState>>
+    >(SessionIndexNotifier.new);
 
 abstract final class RelativeTime {
   static ({String kind, int n}) format(int? lastActivityAtMs, int nowMs) {

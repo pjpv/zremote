@@ -48,7 +48,13 @@ class RpcResponse {
 }
 
 class RpcBridge {
-  RpcBridge({required this.deviceId, required this.dispatch});
+  RpcBridge({
+    required this.deviceId,
+    required this.dispatch,
+    this.onServiceState,
+  });
+
+  final void Function(bool ready)? onServiceState;
 
   static const Map<String, String> _serviceByChannel = {
     'off-peak-task': 'offPeakTaskService',
@@ -57,6 +63,9 @@ class RpcBridge {
     'zr-probe': '__zrProbe',
     'coding-plan-subscription': 'codingPlanSubscriptionService',
     'zr-captcha': '__zrCaptcha',
+    'provider-settings': 'providerSettingsService',
+    'model-selection': 'modelSelectionService',
+    'setting': 'settingService',
   };
 
   final String deviceId;
@@ -90,6 +99,7 @@ class RpcBridge {
     if (service == null) {
       throw RpcNotReadyException('unknown channel: $channel');
     }
+    final reportsReadiness = channel != 'zr-probe' && channel != 'zr-captcha';
     final id = _nextId++;
     final argsJson = jsonEncode(args);
     final argsB64 = base64Encode(utf8.encode(argsJson));
@@ -101,12 +111,18 @@ class RpcBridge {
     }
     try {
       final response = await completer.future.timeout(timeout);
+      if (reportsReadiness) onServiceState?.call(true);
       if (kDebugMode) {
         debugPrint(
           '[zr-diag] <- $channel.$method id=$id values=${response.values.length}',
         );
       }
       return response;
+    } on RpcRemoteException catch (e) {
+      if (reportsReadiness && e.message.contains('no-services')) {
+        onServiceState?.call(false);
+      }
+      rethrow;
     } on TimeoutException {
       if (kDebugMode) {
         debugPrint('[zr-diag] !! $channel.$method id=$id TIMEOUT');

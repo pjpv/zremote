@@ -39,6 +39,7 @@ void main() {
                 onAutomationPressed: onAuto,
                 onClaimPressed: onClaim,
                 onUsagePressed: onUsage ?? () {},
+                onModelSettingsPressed: () {},
               ),
             ),
           );
@@ -48,42 +49,35 @@ void main() {
   }
 
   testWidgets('SidePanelDrawer 渲染标题与各功能卡片 (中文)', (tester) async {
-    await tester.pumpWidget(
-      buildHost(onAuto: () {}, onClaim: () {}),
-    );
+    await tester.pumpWidget(buildHost(onAuto: () {}, onClaim: () {}));
     await tester.pumpAndSettle();
 
     expect(find.text('功能工具箱'), findsOneWidget);
     expect(find.text('我的电脑'), findsNothing);
     expect(find.text('自动化调度'), findsOneWidget);
     expect(find.text('权益中心'), findsOneWidget);
-    expect(find.text('更多功能'), findsOneWidget);
+    expect(find.text('用量统计'), findsOneWidget);
+    expect(find.text('模型设置'), findsOneWidget);
   });
 
   testWidgets('SidePanelDrawer 渲染英文文本 (English)', (tester) async {
     await tester.pumpWidget(
-      buildHost(
-        onAuto: () {},
-        onClaim: () {},
-        locale: const Locale('en'),
-      ),
+      buildHost(onAuto: () {}, onClaim: () {}, locale: const Locale('en')),
     );
     await tester.pumpAndSettle();
 
     expect(find.text('Toolbox'), findsOneWidget);
     expect(find.text('Automation'), findsOneWidget);
     expect(find.text('Perks Center'), findsOneWidget);
-    expect(find.text('More Tools'), findsOneWidget);
+    expect(find.text('Usage'), findsOneWidget);
+    expect(find.text('Models'), findsOneWidget);
   });
 
   testWidgets('自动化卡常驻可点（无订阅信号也不锁）', (tester) async {
     bool autoTriggered = false;
 
     await tester.pumpWidget(
-      buildHost(
-        onAuto: () => autoTriggered = true,
-        onClaim: () {},
-      ),
+      buildHost(onAuto: () => autoTriggered = true, onClaim: () {}),
     );
     await tester.pumpAndSettle();
 
@@ -97,10 +91,7 @@ void main() {
     bool claimTriggered = false;
 
     await tester.pumpWidget(
-      buildHost(
-        onAuto: () {},
-        onClaim: () => claimTriggered = true,
-      ),
+      buildHost(onAuto: () {}, onClaim: () => claimTriggered = true),
     );
     await tester.pumpAndSettle();
 
@@ -112,10 +103,7 @@ void main() {
   testWidgets('排队任务点亮「N 条排队」徽标，自动化卡可点', (tester) async {
     bool autoTriggered = false;
     await tester.pumpWidget(
-      buildHost(
-        onAuto: () => autoTriggered = true,
-        onClaim: () {},
-      ),
+      buildHost(onAuto: () => autoTriggered = true, onClaim: () {}),
     );
     await tester.pumpAndSettle();
 
@@ -145,10 +133,7 @@ void main() {
   testWidgets('权益就绪后点击权益卡片触发 onClaimPressed 回调', (tester) async {
     bool claimTriggered = false;
     await tester.pumpWidget(
-      buildHost(
-        onAuto: () {},
-        onClaim: () => claimTriggered = true,
-      ),
+      buildHost(onAuto: () {}, onClaim: () => claimTriggered = true),
     );
     await tester.pumpAndSettle();
 
@@ -177,6 +162,7 @@ void main() {
               onAutomationPressed: () {},
               onClaimPressed: () {},
               onUsagePressed: () {},
+              onModelSettingsPressed: () {},
             ),
           ),
         ),
@@ -188,22 +174,13 @@ void main() {
     final container = ProviderScope.containerOf(element);
 
     container.read(claimEntryProvider.notifier).report(device.id, true);
-    container.read(automationProvider.notifier).reportSubscribed(device.id, true);
-    container.read(automationProvider.notifier).replaceOffPeak(
-      device.id,
-      [
-        {
-          'offPeakTaskId': 'task-1',
-          'status': 'queued',
-          'title': '测试排队任务 1',
-        },
-        {
-          'offPeakTaskId': 'task-2',
-          'status': 'queued',
-          'title': '测试排队任务 2',
-        },
-      ],
-    );
+    container
+        .read(automationProvider.notifier)
+        .reportSubscribed(device.id, true);
+    container.read(automationProvider.notifier).replaceOffPeak(device.id, [
+      {'offPeakTaskId': 'task-1', 'status': 'queued', 'title': '测试排队任务 1'},
+      {'offPeakTaskId': 'task-2', 'status': 'queued', 'title': '测试排队任务 2'},
+    ]);
 
     await tester.pumpAndSettle();
 
@@ -231,6 +208,7 @@ void main() {
                     onAutomationPressed: () => autoTriggered = true,
                     onClaimPressed: () {},
                     onUsagePressed: () {},
+                    onModelSettingsPressed: () {},
                   ),
                   child: const Text('打开工具箱'),
                 ),
@@ -244,7 +222,9 @@ void main() {
 
     final element = tester.element(find.byType(MaterialApp));
     final container = ProviderScope.containerOf(element);
-    container.read(automationProvider.notifier).reportSubscribed(device.id, true);
+    container
+        .read(automationProvider.notifier)
+        .reportSubscribed(device.id, true);
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('打开工具箱'));
@@ -277,6 +257,7 @@ void main() {
                     onAutomationPressed: () {},
                     onClaimPressed: () {},
                     onUsagePressed: () {},
+                    onModelSettingsPressed: () {},
                   ),
                   child: const Text('打开工具箱'),
                 ),

@@ -4,6 +4,7 @@ include: package:flutter_lints/flutter.yaml
 analyzer:
   exclude:
     - ours/**
+    - third_party/**
 
 linter:
   rules:

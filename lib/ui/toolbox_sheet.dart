@@ -5,6 +5,7 @@ import '../l10n/app_localizations.dart';
 import '../models/device.dart';
 import '../state/automation.dart';
 import '../state/claim_entry.dart';
+import '../state/service_readiness.dart';
 import '../theme.dart';
 import 'sheet_shell.dart';
 
@@ -14,6 +15,7 @@ Future<void> showToolboxSheet({
   required VoidCallback onAutomationPressed,
   required VoidCallback onClaimPressed,
   required VoidCallback onUsagePressed,
+  required VoidCallback onModelSettingsPressed,
 }) {
   return showZrSheet<void>(
     context: context,
@@ -22,6 +24,7 @@ Future<void> showToolboxSheet({
       onAutomationPressed: onAutomationPressed,
       onClaimPressed: onClaimPressed,
       onUsagePressed: onUsagePressed,
+      onModelSettingsPressed: onModelSettingsPressed,
     ),
   );
 }
@@ -33,12 +36,14 @@ class ToolboxSheet extends ConsumerWidget {
     required this.onAutomationPressed,
     required this.onClaimPressed,
     required this.onUsagePressed,
+    required this.onModelSettingsPressed,
   });
 
   final RemoteDevice device;
   final VoidCallback onAutomationPressed;
   final VoidCallback onClaimPressed;
   final VoidCallback onUsagePressed;
+  final VoidCallback onModelSettingsPressed;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -46,6 +51,9 @@ class ToolboxSheet extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final autoBoard = ref.watch(automationProvider)[device.id];
     final claimReady = ref.watch(claimEntryProvider)[device.id] == true;
+    final readiness =
+        ref.watch(serviceReadinessProvider)[device.id] ??
+        ServiceReadiness.unknown;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -87,11 +95,55 @@ class ToolboxSheet extends ConsumerWidget {
           ),
         ),
         Divider(height: 1, color: zt.hairline),
+        if (readiness == ServiceReadiness.unavailable)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline_rounded, size: 14, color: zt.textLo),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    l10n.sessionNotReadyHint,
+                    style: TextStyle(fontSize: 11, color: zt.textLo),
+                  ),
+                ),
+              ],
+            ),
+          ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _ToolGridCard(
+                      icon: Icons.model_training_rounded,
+                      title: l10n.toolboxModel,
+                      subtitle: l10n.toolboxModelDesc,
+                      onTap: () {
+                        Navigator.pop(context);
+                        onModelSettingsPressed();
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _ToolGridCard(
+                      icon: Icons.query_stats_rounded,
+                      title: l10n.toolboxUsage,
+                      subtitle: l10n.toolboxUsageDesc,
+                      onTap: () {
+                        Navigator.pop(context);
+                        onUsagePressed();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
               Row(
                 children: [
                   Expanded(
@@ -123,24 +175,7 @@ class ToolboxSheet extends ConsumerWidget {
                       },
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _ToolGridCard(
-                      icon: Icons.query_stats_rounded,
-                      title: l10n.toolboxUsage,
-                      subtitle: l10n.toolboxUsageDesc,
-                      onTap: () {
-                        Navigator.pop(context);
-                        onUsagePressed();
-                      },
-                    ),
-                  ),
                 ],
-              ),
-              const SizedBox(height: 10),
-              _ToolPlaceholderCard(
-                title: l10n.toolboxMoreComing,
-                subtitle: l10n.toolboxMoreComingDesc,
               ),
             ],
           ),
@@ -288,81 +323,6 @@ class _ToolGridCard extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _ToolPlaceholderCard extends StatelessWidget {
-  const _ToolPlaceholderCard({
-    required this.title,
-    required this.subtitle,
-  });
-
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    final zt = context.zt;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.02)
-            : zt.field.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.05)
-              : zt.hairline.withValues(alpha: 0.6),
-          width: 0.8,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.04)
-                  : Colors.black.withValues(alpha: 0.03),
-            ),
-            child: Icon(
-              Icons.widgets_outlined,
-              size: 16,
-              color: zt.textTertiary,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    color: zt.textLo,
-                  ),
-                ),
-                const SizedBox(height: 1),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    color: zt.textTertiary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

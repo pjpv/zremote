@@ -9,6 +9,7 @@ class LinkBuilder {
   static const _hashKey = 'hash';
   static const _tKey = 't';
   static const _nameKey = 'name';
+  static const _appVersionKey = 'app_version';
 
   static RemoteDevice? parse(String input, {String? id, DateTime? now}) {
     final trimmed = input.trim();
@@ -26,7 +27,17 @@ class LinkBuilder {
 
     final sid = params[_sidKey];
     final hash = params[_hashKey];
-    if (sid == null || sid.isEmpty || hash == null || hash.isEmpty) return null;
+    final appVersion = params[_appVersionKey];
+    final DeviceKind kind;
+    if (sid == null || sid.isEmpty) {
+      return null;
+    } else if (hash != null && hash.isNotEmpty) {
+      kind = DeviceKind.legacy;
+    } else if (appVersion != null && appVersion.isNotEmpty) {
+      kind = DeviceKind.v2;
+    } else {
+      return null;
+    }
 
     final base = uri.hasPort
         ? Uri(
@@ -50,12 +61,15 @@ class LinkBuilder {
       params: params,
       label: label ?? '',
       createdAt: now ?? DateTime.now(),
+      kind: kind,
     );
   }
 
   static Uri buildUrl(RemoteDevice device, {DateTime? now}) {
     final params = Map<String, String>.of(device.params);
-    params[_tKey] = (now ?? DateTime.now()).millisecondsSinceEpoch.toString();
+    if (device.kind == DeviceKind.legacy) {
+      params[_tKey] = (now ?? DateTime.now()).millisecondsSinceEpoch.toString();
+    }
     return Uri.parse(device.baseUrl).replace(queryParameters: params);
   }
 }

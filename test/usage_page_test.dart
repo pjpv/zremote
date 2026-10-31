@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zremote/l10n/app_localizations.dart';
 import 'package:zremote/models/device.dart';
+import 'package:zremote/state/resume_reload.dart';
+import 'package:zremote/state/service_readiness.dart';
 import 'package:zremote/state/session_status.dart';
 import 'package:zremote/ui/toolbox_sheet.dart';
 import 'package:zremote/ui/claim_ticket_dialog.dart';
@@ -20,57 +22,114 @@ void main() {
   );
 
   Map<String, dynamic> allJson() => {
-    'range': 'all', 'generatedAt': 1780000000000,
-    'timeZone': 'Asia/Shanghai', 'source': 'agent-db',
+    'range': 'all',
+    'generatedAt': 1780000000000,
+    'timeZone': 'Asia/Shanghai',
+    'source': 'agent-db',
     'summary': {
-      'totalTokens': 12345678, 'peakDayTokens': 990000,
-      'longestSessionMs': 1380000, 'currentStreakDays': 3,
-      'longestStreakDays': 9, 'totalSessions': 42, 'totalTurns': 300,
-      'toolCallCount': 88, 'activeDays': 9,
-      'favoriteModel': {'modelId': 'GLM-4.6', 'totalTokens': 8000000, 'share': 0.65},
+      'totalTokens': 12345678,
+      'peakDayTokens': 990000,
+      'longestSessionMs': 1380000,
+      'currentStreakDays': 3,
+      'longestStreakDays': 9,
+      'totalSessions': 42,
+      'totalTurns': 300,
+      'toolCallCount': 88,
+      'activeDays': 9,
+      'favoriteModel': {
+        'modelId': 'GLM-4.6',
+        'totalTokens': 8000000,
+        'share': 0.65,
+      },
     },
-    'heatmap': {'startDate': '2026-09-14', 'endDate': '2026-09-21',
-      'maxTokens': 990000, 'weeks': [
-        {'weekIndex': 0, 'days': [
-          {'date': '2026-09-20', 'level': 1, 'totalTokens': 100,
-           'turnCount': 1, 'toolCallCount': 0},
-          null,
-          {'date': '2026-09-22', 'level': 3, 'totalTokens': 5000,
-           'turnCount': 6, 'toolCallCount': 2},
-        ]},
-      ]},
-    'dailyModelUsage': [], 'models': [], 'tools': [],
+    'heatmap': {
+      'startDate': '2026-09-14',
+      'endDate': '2026-09-21',
+      'maxTokens': 990000,
+      'weeks': [
+        {
+          'weekIndex': 0,
+          'days': [
+            {
+              'date': '2026-09-20',
+              'level': 1,
+              'totalTokens': 100,
+              'turnCount': 1,
+              'toolCallCount': 0,
+            },
+            null,
+            {
+              'date': '2026-09-22',
+              'level': 3,
+              'totalTokens': 5000,
+              'turnCount': 6,
+              'toolCallCount': 2,
+            },
+          ],
+        },
+      ],
+    },
+    'dailyModelUsage': [],
+    'models': [],
+    'tools': [],
   };
 
   Map<String, dynamic> rangedJson(String range, {String? secondModel}) => {
-    'range': range, 'generatedAt': 1780000000000,
-    'timeZone': 'Asia/Shanghai', 'source': 'agent-db',
-    'summary': {'totalTokens': 1250, 'peakDayTokens': 600,
-      'longestSessionMs': 0, 'currentStreakDays': 2, 'longestStreakDays': 2,
-      'favoriteModel': null},
+    'range': range,
+    'generatedAt': 1780000000000,
+    'timeZone': 'Asia/Shanghai',
+    'source': 'agent-db',
+    'summary': {
+      'totalTokens': 1250,
+      'peakDayTokens': 600,
+      'longestSessionMs': 0,
+      'currentStreakDays': 2,
+      'longestStreakDays': 2,
+      'favoriteModel': null,
+    },
     'heatmap': {'maxTokens': 0, 'weeks': []},
     'dailyModelUsage': [
-      {'date': '2026-09-20', 'models': [
-        {'modelId': 'GLM-4.6', 'totalTokens': 600}]},
-      {'date': '2026-09-21', 'models': [
-        {'modelId': 'GLM-4.6', 'totalTokens': 400},
-        if (secondModel != null) {'modelId': secondModel, 'totalTokens': 250},
-      ]},
+      {
+        'date': '2026-09-20',
+        'models': [
+          {'modelId': 'GLM-4.6', 'totalTokens': 600},
+        ],
+      },
+      {
+        'date': '2026-09-21',
+        'models': [
+          {'modelId': 'GLM-4.6', 'totalTokens': 400},
+          if (secondModel != null) {'modelId': secondModel, 'totalTokens': 250},
+        ],
+      },
     ],
     'models': [
-      {'modelId': 'GLM-4.6', 'totalTokens': 1000, 'share': 0.8,
-       'inputTokens': 0, 'outputTokens': 0, 'requestCount': 9},
+      {
+        'modelId': 'GLM-4.6',
+        'totalTokens': 1000,
+        'share': 0.8,
+        'inputTokens': 0,
+        'outputTokens': 0,
+        'requestCount': 9,
+      },
       if (secondModel != null)
-        {'modelId': secondModel, 'totalTokens': 250, 'share': 0.2,
-         'inputTokens': 0, 'outputTokens': 0, 'requestCount': 2},
+        {
+          'modelId': secondModel,
+          'totalTokens': 250,
+          'share': 0.2,
+          'inputTokens': 0,
+          'outputTokens': 0,
+          'requestCount': 2,
+        },
     ],
     'tools': [],
   };
 
-  Future<void> pumpPage(
+  Future<ProviderContainer> pumpPage(
     WidgetTester tester, {
     required ScriptedBridge bridge,
     SessionStatus status = SessionStatus.live,
+    ServiceReadiness readiness = ServiceReadiness.unknown,
   }) async {
     tester.view.physicalSize = const Size(600, 3200);
     tester.view.devicePixelRatio = 1.0;
@@ -79,6 +138,9 @@ void main() {
     final container = ProviderContainer();
     addTearDown(container.dispose);
     container.read(sessionStatusProvider.notifier).report('d1', status);
+    container
+        .read(serviceReadinessProvider.notifier)
+        .report('d1', readiness);
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
@@ -91,13 +153,16 @@ void main() {
       ),
     );
     await tester.pump();
+    return container;
   }
 
   testWidgets('1. 正常快照：五格汇总 + 热力图 + 趋势图例 + 占比', (tester) async {
-    final bridge = ScriptedBridge(script: [
-      [allJson()],
-      [rangedJson('7d', secondModel: 'GLM-4.5-Air')],
-    ]);
+    final bridge = ScriptedBridge(
+      script: [
+        [allJson()],
+        [rangedJson('7d', secondModel: 'GLM-4.5-Air')],
+      ],
+    );
     await pumpPage(tester, bridge: bridge);
     expect(find.text(ClaimFormat.compact(12345678, 'zh')), findsOneWidget);
     expect(find.text(ClaimFormat.compact(990000, 'zh')), findsOneWidget);
@@ -141,10 +206,12 @@ void main() {
   });
 
   testWidgets('1b. 热力图点按：当日详情弹层（三计数 + 模型明细 + 关闭）', (tester) async {
-    final bridge = ScriptedBridge(script: [
-      [allJson()],
-      [rangedJson('7d', secondModel: 'GLM-4.5-Air')],
-    ]);
+    final bridge = ScriptedBridge(
+      script: [
+        [allJson()],
+        [rangedJson('7d', secondModel: 'GLM-4.5-Air')],
+      ],
+    );
     await pumpPage(tester, bridge: bridge);
     final heat = find.byKey(const Key('usage-heatmap'));
     expect(heat, findsOneWidget);
@@ -167,10 +234,12 @@ void main() {
   });
 
   testWidgets('1c. 趋势点按：当日详情（就近取日；日不在热力图 → 计数 0 兜底）', (tester) async {
-    final bridge = ScriptedBridge(script: [
-      [allJson()],
-      [rangedJson('7d', secondModel: 'GLM-4.5-Air')],
-    ]);
+    final bridge = ScriptedBridge(
+      script: [
+        [allJson()],
+        [rangedJson('7d', secondModel: 'GLM-4.5-Air')],
+      ],
+    );
     await pumpPage(tester, bridge: bridge);
     final trend = find.byKey(const Key('usage-trend'));
     expect(trend, findsOneWidget);
@@ -188,11 +257,13 @@ void main() {
   });
 
   testWidgets('2. range 切换：30d 追加一次 ranged 调用并重绘', (tester) async {
-    final bridge = ScriptedBridge(script: [
-      [allJson()],
-      [rangedJson('7d')],
-      [rangedJson('30d', secondModel: 'GLM-4.5-Air')],
-    ]);
+    final bridge = ScriptedBridge(
+      script: [
+        [allJson()],
+        [rangedJson('7d')],
+        [rangedJson('30d', secondModel: 'GLM-4.5-Air')],
+      ],
+    );
     await pumpPage(tester, bridge: bridge);
     expect(find.text('20.0%'), findsNothing);
     await tester.tap(find.text('近 30 天'));
@@ -209,21 +280,32 @@ void main() {
   testWidgets('2b. 模型溢出：占比 top5+其他（预留槽防撞色），趋势保持 top6', (tester) async {
     final models = <Map<String, dynamic>>[
       for (var i = 1; i <= 8; i++)
-        {'modelId': 'M$i', 'totalTokens': 100 * (9 - i), 'share': 0.0,
-         'inputTokens': 0, 'outputTokens': 0, 'requestCount': 1},
+        {
+          'modelId': 'M$i',
+          'totalTokens': 100 * (9 - i),
+          'share': 0.0,
+          'inputTokens': 0,
+          'outputTokens': 0,
+          'requestCount': 1,
+        },
     ];
     final ranged = rangedJson('7d')
       ..['dailyModelUsage'] = [
-        {'date': '2026-09-20', 'models': [
-          for (final m in models)
-            {'modelId': m['modelId'], 'totalTokens': m['totalTokens']},
-        ]},
+        {
+          'date': '2026-09-20',
+          'models': [
+            for (final m in models)
+              {'modelId': m['modelId'], 'totalTokens': m['totalTokens']},
+          ],
+        },
       ]
       ..['models'] = models;
-    final bridge = ScriptedBridge(script: [
-      [allJson()],
-      [ranged],
-    ]);
+    final bridge = ScriptedBridge(
+      script: [
+        [allJson()],
+        [ranged],
+      ],
+    );
     await pumpPage(tester, bridge: bridge);
     expect(find.text('其他'), findsOneWidget);
     expect(find.text('M5'), findsNWidgets(2));
@@ -232,7 +314,7 @@ void main() {
     expect(find.text('M8'), findsNothing);
   });
 
-  testWidgets('3. no-services 退避：2s 后自愈，全量断言照过', (tester) async {
+  testWidgets('3. no-services 退避：4s 后自愈，全量断言照过', (tester) async {
     final bridge = ScriptedBridge(
       errors: {0: 'no-services'},
       script: [
@@ -244,7 +326,7 @@ void main() {
     await pumpPage(tester, bridge: bridge);
     expect(find.byType(CircularProgressIndicator), findsWidgets);
     expect(find.text(ClaimFormat.compact(12345678, 'zh')), findsNothing);
-    await tester.pump(const Duration(seconds: 2));
+    await tester.pump(const Duration(seconds: 5));
     await tester.pump();
     expect(find.text(ClaimFormat.compact(12345678, 'zh')), findsOneWidget);
     expect(find.text('使用热力图'), findsOneWidget);
@@ -254,18 +336,44 @@ void main() {
     expect(bridge.commands.length, 3);
   });
 
-  testWidgets('4. 超时耗尽：3×10s+2×2s → error(notReady) LED-live 分支', (tester) async {
+  testWidgets('4. 超时耗尽：3×25s+2×4s → error(notReady) LED-live 分支', (
+    tester,
+  ) async {
     final bridge = ScriptedBridge(script: []);
     await pumpPage(tester, bridge: bridge);
-    await tester.pump(const Duration(seconds: 10));
-    await tester.pump(const Duration(seconds: 2));
-    await tester.pump(const Duration(seconds: 10));
-    await tester.pump(const Duration(seconds: 2));
-    await tester.pump(const Duration(seconds: 10));
+    await tester.pump(const Duration(seconds: 25));
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pump(const Duration(seconds: 25));
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pump(const Duration(seconds: 25));
     await tester.pump();
     expect(find.text('页面服务暂不可用'), findsOneWidget);
     expect(find.text('刷新'), findsOneWidget);
     expect(find.text(ClaimFormat.compact(12345678, 'zh')), findsNothing);
+    expect(bridge.commands.length, 3);
+  });
+
+  testWidgets('4b. 容器未就绪（V2 未选电脑）：no-services 退避耗尽显示前置提示', (
+    tester,
+  ) async {
+    final bridge = ScriptedBridge(
+      script: [],
+      errors: {0: 'no-services', 1: 'no-services', 2: 'no-services'},
+    );
+    await pumpPage(
+      tester,
+      bridge: bridge,
+      readiness: ServiceReadiness.unavailable,
+    );
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump();
+    expect(find.text('请先在网页中选择电脑并进入会话'), findsOneWidget);
+    expect(find.text('读取用量失败'), findsNothing);
+    expect(find.text('页面服务暂不可用'), findsNothing);
     expect(bridge.commands.length, 3);
   });
 
@@ -288,17 +396,23 @@ void main() {
   testWidgets('6. 空数据：无热力图区、趋势区空态卡、汇总零值不炸', (tester) async {
     final emptyAll = allJson()
       ..['summary'] = {
-        'totalTokens': 0, 'peakDayTokens': 0, 'longestSessionMs': 0,
-        'currentStreakDays': 0, 'longestStreakDays': 0, 'favoriteModel': null,
+        'totalTokens': 0,
+        'peakDayTokens': 0,
+        'longestSessionMs': 0,
+        'currentStreakDays': 0,
+        'longestStreakDays': 0,
+        'favoriteModel': null,
       }
       ..['heatmap'] = {'maxTokens': 0, 'weeks': []};
     final emptyRanged = rangedJson('7d')
       ..['dailyModelUsage'] = []
       ..['models'] = [];
-    final bridge = ScriptedBridge(script: [
-      [emptyAll],
-      [emptyRanged],
-    ]);
+    final bridge = ScriptedBridge(
+      script: [
+        [emptyAll],
+        [emptyRanged],
+      ],
+    );
     await pumpPage(tester, bridge: bridge);
     expect(find.text('使用热力图'), findsNothing);
     expect(find.text('暂无使用记录'), findsOneWidget);
@@ -323,6 +437,7 @@ void main() {
                   onAutomationPressed: () {},
                   onClaimPressed: () {},
                   onUsagePressed: () => taps++,
+                  onModelSettingsPressed: () {},
                 ),
                 child: const Text('open'),
               ),
@@ -339,5 +454,36 @@ void main() {
     await tester.pumpAndSettle();
     expect(taps, 1);
     expect(find.text('用量统计'), findsNothing);
+  });
+
+  testWidgets('8. 判死重载回 live：epoch 广播 + status live → 就地重启（旧轮作废）', (
+    tester,
+  ) async {
+    final bridge = ScriptedBridge(script: [
+      [allJson()],
+      [rangedJson('7d', secondModel: 'GLM-4.5-Air')],
+      [allJson()],
+      [rangedJson('7d', secondModel: 'GLM-4.5-Air')],
+    ]);
+    final container = await pumpPage(tester, bridge: bridge);
+    expect(find.text(ClaimFormat.compact(12345678, 'zh')), findsOneWidget);
+    expect(bridge.commands.length, 2);
+
+    container.read(resumeReloadEpochProvider.notifier).bump();
+    await tester.pump();
+    container
+        .read(sessionStatusProvider.notifier)
+        .report('d1', SessionStatus.loading);
+    await tester.pump();
+    container
+        .read(sessionStatusProvider.notifier)
+        .report('d1', SessionStatus.live);
+    await tester.pump();
+    await tester.pump();
+    expect(bridge.commands.length, 4);
+    expect(find.text(ClaimFormat.compact(12345678, 'zh')), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('usage-share')));
+    await tester.pumpAndSettle();
+    expect(find.text('80.0%'), findsOneWidget);
   });
 }

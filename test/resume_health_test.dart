@@ -6,19 +6,31 @@ void main() {
   const t = ResumeHealthPolicy.quietThreshold;
   const long = Duration(minutes: 30);
 
-  test('短后台（<90s）一律不动', () {
-    for (final rendererGone in [false, true]) {
-      for (final live in [false, true]) {
-        expect(
-          ResumeHealthPolicy.decide(
-            backgroundFor: const Duration(seconds: 89),
-            rendererGone: rendererGone,
-            live: live,
-            sinceWsActivity: Duration(hours: 1),
-          ),
-          ResumeHealthAction.ok,
-        );
-      }
+  test('短后台 + 渲染进程活 → 不动（前台服务应扛住，勿拆好连接）', () {
+    for (final live in [false, true]) {
+      expect(
+        ResumeHealthPolicy.decide(
+          backgroundFor: const Duration(seconds: 89),
+          rendererGone: false,
+          live: live,
+          sinceWsActivity: Duration(hours: 1),
+        ),
+        ResumeHealthAction.ok,
+      );
+    }
+  });
+
+  test('渲染进程死 → 立即重载，与后台时长无关（2026-09-27 提前）', () {
+    for (final bg in [const Duration(seconds: 5), const Duration(seconds: 89), long]) {
+      expect(
+        ResumeHealthPolicy.decide(
+          backgroundFor: bg,
+          rendererGone: true,
+          live: true,
+          sinceWsActivity: const Duration(seconds: 5),
+        ),
+        ResumeHealthAction.reload,
+      );
     }
   });
 
@@ -174,9 +186,9 @@ void main() {
       );
     });
 
-    test('健康回前台（live + 新鲜心跳）→ 无事可做；无宽限在跑时 ok 是静默', () {
+    test('健康回前台：久置改发写链路验证，短后台仍静默（2026-09-27 补轴）', () {
       final w = ResumeWatch();
-      final t0 = DateTime(2026, 9, 17, 9, 0);
+      final t0 = DateTime(2026, 9, 27, 21, 0);
       w.onState(AppLifecycleState.paused, t0);
       expect(
         w.onResumed(
@@ -185,9 +197,47 @@ void main() {
           live: true,
           sinceWsActivity: const Duration(seconds: 30),
         ),
-        ResumeSignal.none,
+        ResumeSignal.verifyWritePath,
       );
       expect(w.graceArmed, isFalse);
+      w.onState(AppLifecycleState.paused, t0.add(const Duration(hours: 3)));
+      expect(
+        w.onResumed(
+          now: t0.add(const Duration(hours: 3, seconds: 20)),
+          rendererGone: false,
+          live: true,
+          sinceWsActivity: const Duration(seconds: 5),
+        ),
+        ResumeSignal.none,
+      );
+    });
+
+    test('写链路验证阈值边界：恰在 30s 上发验证，之下静默', () {
+      final w = ResumeWatch();
+      final t0 = DateTime(2026, 9, 27, 21, 0);
+      final probeAt = ResumeHealthPolicy.writePathProbeThreshold;
+      w.onState(AppLifecycleState.paused, t0);
+      expect(
+        w.onResumed(
+          now: t0.add(probeAt),
+          rendererGone: false,
+          live: true,
+          sinceWsActivity: const Duration(seconds: 1),
+        ),
+        ResumeSignal.verifyWritePath,
+      );
+      w.onState(AppLifecycleState.paused, t0.add(const Duration(minutes: 1)));
+      expect(
+        w.onResumed(
+          now: t0.add(const Duration(minutes: 1)).add(
+            probeAt - const Duration(seconds: 1),
+          ),
+          rendererGone: false,
+          live: true,
+          sinceWsActivity: const Duration(seconds: 1),
+        ),
+        ResumeSignal.none,
+      );
     });
 
     test('clearGrace 后 graceArmed 复位（到期检查路径）', () {

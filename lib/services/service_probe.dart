@@ -151,6 +151,29 @@ abstract final class ServiceProbe {
     return report;
   }
 
+  static Future<bool?> checkReady(
+    RpcBridge bridge, {
+    Duration timeout = const Duration(seconds: 2),
+  }) async {
+    try {
+      final response = await bridge.callArgs(
+        'zr-probe',
+        'dump',
+        args: [const <Object?>[]],
+        timeout: timeout,
+      );
+      final payload = response.firstObject;
+      final keys = payload?['keys'];
+      if (keys is List) return keys.isNotEmpty;
+      return null;
+    } on RpcRemoteException catch (e) {
+      if (e.message.contains('no-services')) return false;
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   static Future<Map<String, Object?>> _retryOnNoServices(
     String label,
     Future<Map<String, Object?>> Function() attempt,

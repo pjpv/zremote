@@ -577,6 +577,7 @@ class SessionState {
     this.lastActivityAt,
     this.createdAt,
     this.workspace,
+    this.workspacePath,
     this.pinned = false,
   });
 
@@ -597,6 +598,8 @@ class SessionState {
 
   final String? workspace;
 
+  final String? workspacePath;
+
   final bool pinned;
 
   @override
@@ -614,6 +617,7 @@ class SessionState {
       other.lastActivityAt == lastActivityAt &&
       other.createdAt == createdAt &&
       other.workspace == workspace &&
+      other.workspacePath == workspacePath &&
       other.pinned == pinned;
 
   @override
@@ -630,6 +634,7 @@ class SessionState {
     lastActivityAt,
     createdAt,
     workspace,
+    workspacePath,
     pinned,
   ]);
 }
@@ -988,6 +993,7 @@ abstract final class TaskIndexExtractor {
       phase: phase,
       lastActivityAt: laa is num ? laa.toInt() : null,
       createdAt: ca is num ? ca.toInt() : null,
+      workspacePath: wsPath is String && wsPath.isNotEmpty ? wsPath : null,
       workspace: wsLabel is String && wsLabel.isNotEmpty
           ? wsLabel
           : SessionStateExtractor.workspaceBasenameOf(
@@ -1060,6 +1066,7 @@ abstract final class TaskIndexExtractor {
       lastActivityAt: lastActivityAt,
       createdAt: createdAt,
       workspace: SessionStateExtractor.workspaceBasenameOf(workspacePath),
+      workspacePath: workspacePath,
       pinned: membership is Map && membership['pinned'] == true,
     );
   }

@@ -227,4 +227,42 @@ void main() {
     expect(calls[0]['error'], contains('Timeout'));
     expect(calls[1]['ok'], isTrue);
   });
+
+  group('checkReady（plan 021 轻量就绪检查）', () {
+    test('容器在 → true，且只发一次空清单 dump', () async {
+      final bridge = ScriptedBridge(
+        script: [
+          [
+            dumpPayload(keys: const ['usageStatsService']),
+          ],
+        ],
+      );
+      expect(await ServiceProbe.checkReady(bridge.bridge), isTrue);
+      expect(bridge.commands, hasLength(1));
+      expect(bridge.commands.single['s'], '__zrProbe');
+      expect(bridge.commands.single['m'], 'dump');
+      expect(argsOf(bridge.commands.single), [
+        <Object?>[],
+      ]);
+    });
+
+    test('页面明确回 no-services → false', () async {
+      final bridge = ScriptedBridge(
+        script: const [],
+        errors: {0: 'no-services'},
+      );
+      expect(await ServiceProbe.checkReady(bridge.bridge), isFalse);
+    });
+
+    test('超时/其它错误 → null（不能结论）', () async {
+      final bridge = ScriptedBridge(script: const []);
+      expect(
+        await ServiceProbe.checkReady(
+          bridge.bridge,
+          timeout: const Duration(milliseconds: 50),
+        ),
+        isNull,
+      );
+    });
+  });
 }

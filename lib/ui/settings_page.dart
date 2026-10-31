@@ -14,6 +14,75 @@ import '../state/session_pool.dart';
 import '../state/theme_mode.dart';
 import '../theme.dart';
 import 'section_label.dart';
+import 'sheet_shell.dart';
+
+Future<String?> _showOptionSheet({
+  required BuildContext context,
+  required String title,
+  required List<(String value, String label)> options,
+  required String current,
+}) {
+  return showZrSheet<String>(
+    context: context,
+    builder: (sheetContext) {
+      final zt = sheetContext.zt;
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.2,
+                color: zt.textHi,
+              ),
+            ),
+          ),
+          Divider(height: 1, color: zt.hairline),
+          for (var i = 0; i < options.length; i++) ...[
+            if (i > 0)
+              Container(
+                height: 1,
+                margin: const EdgeInsets.symmetric(horizontal: 14),
+                color: zt.hairline,
+              ),
+            InkWell(
+              onTap: () => Navigator.pop(sheetContext, options[i].$1),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 13,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      options[i].$1 == current
+                          ? Icons.check_circle
+                          : Icons.radio_button_unchecked,
+                      size: 20,
+                      color: options[i].$1 == current ? zt.accent : zt.textLo,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        options[i].$2,
+                        style: TextStyle(fontSize: 14, color: zt.textHi),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      );
+    },
+  );
+}
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -192,50 +261,19 @@ class _LanguageTile extends ConsumerWidget {
   Future<void> _pick(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context)!;
     final setting = ref.read(localeSettingProvider);
-    final choice = await showDialog<String>(
+    final choice = await _showOptionSheet(
       context: context,
-      builder: (dialogContext) => SimpleDialog(
-        title: Text(l10n.languageTitle),
-        children: [
-          _option(
-            dialogContext,
-            kLocaleSystem,
-            l10n.languageSystem,
-            setting == kLocaleSystem,
-          ),
-          for (final locale in AppLocalizations.supportedLocales)
-            _option(
-              dialogContext,
-              locale.languageCode,
-              localeDisplayName(locale.languageCode),
-              setting == locale.languageCode,
-            ),
-        ],
-      ),
+      title: l10n.languageTitle,
+      options: [
+        (kLocaleSystem, l10n.languageSystem),
+        for (final locale in AppLocalizations.supportedLocales)
+          (locale.languageCode, localeDisplayName(locale.languageCode)),
+      ],
+      current: setting,
     );
     if (choice == null || choice == setting) return;
     await ref.read(localeSettingProvider.notifier).set(choice);
   }
-
-  Widget _option(
-    BuildContext context,
-    String value,
-    String label,
-    bool selected,
-  ) => SimpleDialogOption(
-    onPressed: () => Navigator.pop(context, value),
-    child: Row(
-      children: [
-        Icon(
-          selected ? Icons.check_circle : Icons.radio_button_unchecked,
-          size: 20,
-          color: selected ? context.zt.accent : context.zt.textLo,
-        ),
-        const SizedBox(width: 12),
-        Text(label, style: const TextStyle(fontSize: 14)),
-      ],
-    ),
-  );
 }
 
 class _ThemeTile extends ConsumerWidget {
@@ -262,55 +300,19 @@ class _ThemeTile extends ConsumerWidget {
   Future<void> _pick(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context)!;
     final setting = ref.read(themeModeSettingProvider);
-    final choice = await showDialog<String>(
+    final choice = await _showOptionSheet(
       context: context,
-      builder: (dialogContext) => SimpleDialog(
-        title: Text(l10n.themeTitle),
-        children: [
-          _option(
-            dialogContext,
-            kThemeSystem,
-            l10n.themeSystem,
-            setting == kThemeSystem,
-          ),
-          _option(
-            dialogContext,
-            kThemeDark,
-            l10n.themeDark,
-            setting == kThemeDark,
-          ),
-          _option(
-            dialogContext,
-            kThemeLight,
-            l10n.themeLight,
-            setting == kThemeLight,
-          ),
-        ],
-      ),
+      title: l10n.themeTitle,
+      options: [
+        (kThemeSystem, l10n.themeSystem),
+        (kThemeDark, l10n.themeDark),
+        (kThemeLight, l10n.themeLight),
+      ],
+      current: setting,
     );
     if (choice == null || choice == setting) return;
     await ref.read(themeModeSettingProvider.notifier).set(choice);
   }
-
-  Widget _option(
-    BuildContext context,
-    String value,
-    String label,
-    bool selected,
-  ) => SimpleDialogOption(
-    onPressed: () => Navigator.pop(context, value),
-    child: Row(
-      children: [
-        Icon(
-          selected ? Icons.check_circle : Icons.radio_button_unchecked,
-          size: 20,
-          color: selected ? context.zt.accent : context.zt.textLo,
-        ),
-        const SizedBox(width: 12),
-        Text(label, style: const TextStyle(fontSize: 14)),
-      ],
-    ),
-  );
 }
 
 class _BiometricTile extends ConsumerWidget {

@@ -53,7 +53,7 @@
       }
     }
   },
-  "importFailed": "导入失败：链接需包含 sid 和 hash 参数",
+  "importFailed": "导入失败：链接需包含 sid；旧版链接还需 hash",
   "@importFailed": {
     "description": "Import error snackbar"
   },
@@ -85,6 +85,10 @@
         "type": "String"
       }
     }
+  },
+  "deviceV2Badge": "V2 账号",
+  "@deviceV2Badge": {
+    "description": "Device card badge for V2 entry links"
   },
   "menuOpenSession": "打开会话",
   "@menuOpenSession": {
@@ -213,7 +217,7 @@
   "@scannerPermOpenSettings": {
     "description": "Button to open app system settings"
   },
-  "invalidQr": "不是有效的远程控制二维码（缺少 sid/hash）",
+  "invalidQr": "不是有效的远程控制二维码（缺少 sid，或旧版缺少 hash）",
   "@invalidQr": {
     "description": "Snackbar when scanned code is not a valid control QR"
   },
@@ -245,6 +249,10 @@
   "errorBannerDetail": "自动重载未恢复；若持续失败，电脑端身份可能已轮换，请重新扫码导入",
   "@errorBannerDetail": {
     "description": "Error banner detail text: connection lost, retry to recover"
+  },
+  "webviewIsolationUnsupportedHint": "本机系统 WebView 不支持账号隔离，多个账号将共用登录",
+  "@webviewIsolationUnsupportedHint": {
+    "description": "Fallback banner: per-device WebView profile isolation unavailable, accounts share login domain"
   },
   "retry": "重试",
   "@retry": {
@@ -1159,7 +1167,7 @@
   "@importSheetScanSub": {
     "description": "Import sheet: scan entry subtitle"
   },
-  "importSheetPasteSub": "从剪贴板读取控制链接并导入",
+  "importSheetPasteSub": "从剪贴板读取控制链接并导入（支持 3.16.1 的 V2 链接）",
   "@importSheetPasteSub": {
     "description": "Import sheet: paste entry subtitle"
   },
@@ -1174,6 +1182,14 @@
   "pasteValidFormat": "格式校验通过",
   "@pasteValidFormat": {
     "description": "Paste dialog live validation chip"
+  },
+  "pasteFieldHint": "https://zcode.z.ai/remote/v4?sid=...&hash=...（旧版）或 ?app_version=3.16.1&sid=...（V2）",
+  "@pasteFieldHint": {
+    "description": "Paste dialog input hint showing legacy and V2 link shapes"
+  },
+  "v2LoginHint": "V2 链接已识别；进入后需在页面内登录账号",
+  "@v2LoginHint": {
+    "description": "Paste dialog validation chip for V2 links"
   },
   "automationCenterTitle": "自动化中心",
   "@automationCenterTitle": {
@@ -1473,6 +1489,34 @@
   "@usageHeatmapMore": {
     "description": "Heatmap legend: more"
   },
+  "usageHeatmapDowMon": "一",
+  "@usageHeatmapDowMon": {
+    "description": "Heatmap column header: Monday (short form)"
+  },
+  "usageHeatmapDowTue": "二",
+  "@usageHeatmapDowTue": {
+    "description": "Heatmap column header: Tuesday (short form)"
+  },
+  "usageHeatmapDowWed": "三",
+  "@usageHeatmapDowWed": {
+    "description": "Heatmap column header: Wednesday (short form)"
+  },
+  "usageHeatmapDowThu": "四",
+  "@usageHeatmapDowThu": {
+    "description": "Heatmap column header: Thursday (short form)"
+  },
+  "usageHeatmapDowFri": "五",
+  "@usageHeatmapDowFri": {
+    "description": "Heatmap column header: Friday (short form)"
+  },
+  "usageHeatmapDowSat": "六",
+  "@usageHeatmapDowSat": {
+    "description": "Heatmap column header: Saturday (short form)"
+  },
+  "usageHeatmapDowSun": "日",
+  "@usageHeatmapDowSun": {
+    "description": "Heatmap column header: Sunday (short form)"
+  },
   "usageTrendTitle": "每日模型用量",
   "@usageTrendTitle": {
     "description": "Daily model usage section title (trend + share)"
@@ -1566,6 +1610,10 @@
   "@usageDeviceNotReady": {
     "description": "Device not ready (LED not live branch)"
   },
+  "sessionNotReadyHint": "请先在网页中选择电脑并进入会话",
+  "@sessionNotReadyHint": {
+    "description": "V2 账号页尚未选定电脑/进入 workspace 时的原生页提示"
+  },
   "toolboxTitle": "功能工具箱",
   "@toolboxTitle": {
     "description": "Title of side panel toolbox drawer"
@@ -1611,12 +1659,396 @@
   "@toolboxUsageDesc": {
     "description": "Toolbox card description for usage stats"
   },
-  "toolboxMoreComing": "更多功能",
-  "@toolboxMoreComing": {
-    "description": "Placeholder title for future expansion cards"
+  "toolboxModel": "模型设置",
+  "@toolboxModel": {
+    "description": "Toolbox card title for model settings"
   },
-  "toolboxMoreComingDesc": "即将推出",
-  "@toolboxMoreComingDesc": {
-    "description": "Placeholder description for future expansion cards"
+  "toolboxModelDesc": "供应商与套餐连接",
+  "@toolboxModelDesc": {
+    "description": "Toolbox card description for model settings"
+  },
+  "modelRefresh": "刷新",
+  "@modelRefresh": {
+    "description": "Model settings page refresh action"
+  },
+  "modelLoadFailed": "加载失败",
+  "@modelLoadFailed": {
+    "description": "Model settings load error title (remote business error)"
+  },
+  "modelServiceUnavailable": "页面服务暂不可用",
+  "@modelServiceUnavailable": {
+    "description": "Model settings error when page service container is reloading while LED live"
+  },
+  "modelDeviceNotReady": "设备未就绪",
+  "@modelDeviceNotReady": {
+    "description": "Model settings offline banner / error when device not live"
+  },
+  "modelConnSectionTitle": "套餐连接",
+  "@modelConnSectionTitle": {
+    "description": "Connections section title"
+  },
+  "modelConnPersonal": "个人套餐",
+  "@modelConnPersonal": {
+    "description": "Connection kind label: individual coding plan"
+  },
+  "modelConnTeam": "团队套餐",
+  "@modelConnTeam": {
+    "description": "Connection kind label: team coding plan"
+  },
+  "modelConnStart": "体验套餐",
+  "@modelConnStart": {
+    "description": "Connection kind label: start plan"
+  },
+  "modelConnOffPeak": "闲时套餐",
+  "@modelConnOffPeak": {
+    "description": "Connection kind label: off-peak plan"
+  },
+  "modelConnCurrent": "当前",
+  "@modelConnCurrent": {
+    "description": "Badge for the currently selected connection"
+  },
+  "modelConnUnavailable": "不可用",
+  "@modelConnUnavailable": {
+    "description": "Badge for a connection whose account state is unavailable"
+  },
+  "modelConnNone": "未连接套餐",
+  "@modelConnNone": {
+    "description": "Empty state text when no plan connection exists"
+  },
+  "modelConnLoadFailed": "连接方式获取失败，当前标记可能滞后",
+  "@modelConnLoadFailed": {
+    "description": "Footnote when setting.get degraded"
+  },
+  "modelProvidersSectionTitle": "供应商",
+  "@modelProvidersSectionTitle": {
+    "description": "Providers section title"
+  },
+  "modelProvidersEmpty": "暂无供应商",
+  "@modelProvidersEmpty": {
+    "description": "Empty state for provider list / model list"
+  },
+  "modelProviderModelsCount": "{count} 个模型",
+  "@modelProviderModelsCount": {
+    "description": "Provider row subtitle: model count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "modelProviderDisabled": "已停用",
+  "@modelProviderDisabled": {
+    "description": "Badge for a disabled provider"
+  },
+  "modelProviderUnavailable": "不可用",
+  "@modelProviderUnavailable": {
+    "description": "Badge for an unavailable provider (account state)"
+  },
+  "modelDetailBaseUrl": "接入点",
+  "@modelDetailBaseUrl": {
+    "description": "Provider detail sheet: base URL label"
+  },
+  "modelDetailKeySuffix": "密钥",
+  "@modelDetailKeySuffix": {
+    "description": "Provider detail sheet: API key suffix label"
+  },
+  "modelDetailModels": "模型",
+  "@modelDetailModels": {
+    "description": "Provider detail sheet: models list label"
+  },
+  "modelTestConnection": "测试",
+  "@modelTestConnection": {
+    "description": "Per-model connectivity test button"
+  },
+  "modelTestOk": "连接正常",
+  "@modelTestOk": {
+    "description": "Connectivity test success chip"
+  },
+  "modelTestFail": "连接失败",
+  "@modelTestFail": {
+    "description": "Connectivity test failure chip"
+  },
+  "modelTestNoWorkspace": "需要有已打开的工作区才能测试连接",
+  "@modelTestNoWorkspace": {
+    "description": "Footnote when no host workspace path is available for testing"
+  },
+  "modelPlanActive": "套餐生效中",
+  "@modelPlanActive": {
+    "description": "Model settings plan panel"
+  },
+  "modelPlanLoadFailed": "套餐信息获取失败",
+  "@modelPlanLoadFailed": {
+    "description": "Model settings plan panel"
+  },
+  "modelQuotaFiveHour": "5 小时额度",
+  "@modelQuotaFiveHour": {
+    "description": "Model settings plan panel"
+  },
+  "modelQuotaWeek": "每周额度",
+  "@modelQuotaWeek": {
+    "description": "Model settings plan panel"
+  },
+  "modelQuotaToolCalls": "工具调用",
+  "@modelQuotaToolCalls": {
+    "description": "Model settings plan panel"
+  },
+  "modelQuotaMcp": "ZCode MCP",
+  "@modelQuotaMcp": {
+    "description": "Model settings plan panel"
+  },
+  "modelQuotaOther": "其他配额",
+  "@modelQuotaOther": {
+    "description": "Model settings plan panel"
+  },
+  "modelModelToggleFailed": "模型状态保存失败，已还原",
+  "@modelModelToggleFailed": {
+    "description": "Toast when model enable toggle fails"
+  },
+  "modelProviderAdd": "添加供应商",
+  "@modelProviderAdd": {
+    "description": "Add-provider entry tile under providers section / sheet title"
+  },
+  "modelProviderNameHint": "供应商名称",
+  "@modelProviderNameHint": {
+    "description": "Provider name input hint"
+  },
+  "modelProviderNameRequired": "请输入供应商名称",
+  "@modelProviderNameRequired": {
+    "description": "Validation when provider name is empty"
+  },
+  "modelProviderCreateAction": "创建",
+  "@modelProviderCreateAction": {
+    "description": "Custom provider create button"
+  },
+  "modelTemplateGroupZhipu": "智谱系",
+  "@modelTemplateGroupZhipu": {
+    "description": "Template group label: Zhipu family templates"
+  },
+  "modelTemplateGroupOther": "其他",
+  "@modelTemplateGroupOther": {
+    "description": "Template group label: other templates"
+  },
+  "modelEditProvider": "编辑供应商",
+  "@modelEditProvider": {
+    "description": "Edit provider entry tile / sheet title"
+  },
+  "modelProviderKeyHint": "新 API Key（留空保持不变）",
+  "@modelProviderKeyHint": {
+    "description": "New API key input hint (write-only)"
+  },
+  "modelProviderBaseUrlHint": "接入点 Base URL",
+  "@modelProviderBaseUrlHint": {
+    "description": "Base URL input hint"
+  },
+  "modelProviderApiFormat": "接口协议",
+  "@modelProviderApiFormat": {
+    "description": "API protocol selector label"
+  },
+  "modelProviderSaved": "已保存",
+  "@modelProviderSaved": {
+    "description": "Toast when provider edit saved"
+  },
+  "modelProviderSaveFailed": "保存失败，请重试",
+  "@modelProviderSaveFailed": {
+    "description": "Toast when provider edit save failed / receipt unusable"
+  },
+  "modelProviderDeleteAction": "删除供应商",
+  "@modelProviderDeleteAction": {
+    "description": "Delete provider row / confirm action"
+  },
+  "modelProviderDeleteTitle": "删除供应商？",
+  "@modelProviderDeleteTitle": {
+    "description": "Delete provider confirm dialog title"
+  },
+  "modelProviderDeleteBody": "将从本设备移除「{name}」及其模型配置。",
+  "@modelProviderDeleteBody": {
+    "description": "Delete provider confirm dialog body",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "modelProviderDeleteFailed": "删除失败，请重试",
+  "@modelProviderDeleteFailed": {
+    "description": "Toast when provider delete failed"
+  },
+  "modelAddModel": "添加模型",
+  "@modelAddModel": {
+    "description": "Add-model row in provider detail / dialog title"
+  },
+  "modelDraftEditTitle": "编辑模型配置",
+  "@modelDraftEditTitle": {
+    "description": "Model parameter sheet title in edit mode"
+  },
+  "modelDraftSmartConfig": "智能配置",
+  "@modelDraftSmartConfig": {
+    "description": "Follow-recommended-config switch label"
+  },
+  "modelDraftSmartConfigHelp": "根据模型 ID、Base URL 和 API 格式，为您智能匹配推荐配置。ZCode 会持续更新推荐配置，并自动同步给您。\n如果手动修改某项配置，该项将转为手动管理，不再跟随推荐更新；其他配置仍由智能配置管理。",
+  "@modelDraftSmartConfigHelp": {
+    "description": "Help text under the smart-config switch"
+  },
+  "modelDraftModelId": "模型 ID",
+  "@modelDraftModelId": {
+    "description": "Model ID field label / hint"
+  },
+  "modelDraftContextWindow": "上下文窗口",
+  "@modelDraftContextWindow": {
+    "description": "Context window field label"
+  },
+  "modelDraftContextWindowHelp": "模型一次可处理的上下文容量，单位为 Token。ZCode 会据此管理上下文。\n请勿超过模型的实际上限。",
+  "@modelDraftContextWindowHelp": {
+    "description": "Help text under the context window field"
+  },
+  "modelDraftContextWindowBadge": "上下文窗口：{value}",
+  "@modelDraftContextWindowBadge": {
+    "description": "Model row badge for the effective context window",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "modelDraftMaxOutputTokens": "最大输出 Token",
+  "@modelDraftMaxOutputTokens": {
+    "description": "Max output tokens field label"
+  },
+  "modelDraftMaxOutputTokensHelp": "单次模型请求允许生成的最大 Token 数。\n请勿超过模型的实际上限。",
+  "@modelDraftMaxOutputTokensHelp": {
+    "description": "Help text under the max output tokens field"
+  },
+  "modelDraftInputModalities": "输入类型",
+  "@modelDraftInputModalities": {
+    "description": "Input modalities section label"
+  },
+  "modelDraftInputModalitiesHelp": "设置模型能够接收的内容类型：\n- 文本：接收文本内容，为必选项。\n- 图片：接收图片内容。\n- 视频：接收视频内容。\n- PDF：直接接收 PDF 文档。",
+  "@modelDraftInputModalitiesHelp": {
+    "description": "Help text under the input modalities chips"
+  },
+  "modelModalityText": "文本",
+  "@modelModalityText": {
+    "description": "Input modality: text"
+  },
+  "modelModalityImage": "图片",
+  "@modelModalityImage": {
+    "description": "Input modality: image"
+  },
+  "modelModalityVideo": "视频",
+  "@modelModalityVideo": {
+    "description": "Input modality: video"
+  },
+  "modelModalityPdf": "PDF",
+  "@modelModalityPdf": {
+    "description": "Input modality: PDF"
+  },
+  "modelDraftCapabilities": "模型能力",
+  "@modelDraftCapabilities": {
+    "description": "Model capabilities section label"
+  },
+  "modelDraftCapabilitiesHelp": "- 结构化输出：支持通过 JSON Schema 约束模型输出的字段、类型和结构。\n- 原生联网搜索：支持使用模型接口内置的联网搜索能力。\n- 对话中系统消息：支持在对话中途插入系统指令。\n请勿勾选模型不支持的能力。",
+  "@modelDraftCapabilitiesHelp": {
+    "description": "Help text under the capability chips"
+  },
+  "modelDraftCapabilityJsonSchema": "结构化输出",
+  "@modelDraftCapabilityJsonSchema": {
+    "description": "Capability: structured output"
+  },
+  "modelDraftCapabilityWebSearch": "原生联网搜索",
+  "@modelDraftCapabilityWebSearch": {
+    "description": "Capability: native web search"
+  },
+  "modelDraftCapabilityMidSystem": "对话中系统消息",
+  "@modelDraftCapabilityMidSystem": {
+    "description": "Capability: mid-conversation system messages"
+  },
+  "modelDraftReasoning": "推理设置",
+  "@modelDraftReasoning": {
+    "description": "Reasoning section label"
+  },
+  "modelDraftReasoningLevels": "推理等级（从低到高）",
+  "@modelDraftReasoningLevels": {
+    "description": "Reasoning levels list label"
+  },
+  "modelDraftReasoningLevelsHelp": "设置聊天时可选择的推理等级，必须按推理强度从低到高排列。\n请勿配置模型不支持的推理等级。",
+  "@modelDraftReasoningLevelsHelp": {
+    "description": "Help text under the reasoning levels editor"
+  },
+  "modelDraftReasoningLevelAdd": "添加推理等级",
+  "@modelDraftReasoningLevelAdd": {
+    "description": "Add-reasoning-level action"
+  },
+  "modelDraftReasoningMapping": "推理参数映射",
+  "@modelDraftReasoningMapping": {
+    "description": "Reasoning level parameter mapping label"
+  },
+  "modelDraftRestoreDefault": "恢复默认",
+  "@modelDraftRestoreDefault": {
+    "description": "Restore-default action in the model sheet"
+  },
+  "modelDraftOverridden": "已覆盖",
+  "@modelDraftOverridden": {
+    "description": "Badge marking a field manually overridden"
+  },
+  "modelDraftInvalidId": "模型 ID 不能为空",
+  "@modelDraftInvalidId": {
+    "description": "Validation: model ID required"
+  },
+  "modelDraftInvalidContextWindow": "上下文窗口必须是正整数",
+  "@modelDraftInvalidContextWindow": {
+    "description": "Validation: context window must be a positive integer"
+  },
+  "modelDraftInvalidMaxOutputTokens": "最大输出 Token 必须是正整数",
+  "@modelDraftInvalidMaxOutputTokens": {
+    "description": "Validation: max output tokens must be a positive integer"
+  },
+  "modelDraftInvalidInputModalities": "输入类型必须包含文本",
+  "@modelDraftInvalidInputModalities": {
+    "description": "Validation: text input type required"
+  },
+  "modelDraftInvalidReasoningLevelValues": "推理档位不能为空或重复",
+  "@modelDraftInvalidReasoningLevelValues": {
+    "description": "Validation: reasoning levels empty or duplicated"
+  },
+  "modelDraftInvalidReasoningLevelMap": "推理参数映射无效",
+  "@modelDraftInvalidReasoningLevelMap": {
+    "description": "Validation: reasoning parameter mapping invalid"
+  },
+  "modelModelIncomplete": "模型配置不完整",
+  "@modelModelIncomplete": {
+    "description": "Inline hint under a model row whose config is incomplete"
+  },
+  "modelModelSaveFailed": "保存失败，请重试",
+  "@modelModelSaveFailed": {
+    "description": "Toast / inline error when model draft save failed"
+  },
+  "modelModelAdded": "模型已添加",
+  "@modelModelAdded": {
+    "description": "Toast when model added"
+  },
+  "modelModelDeleteAction": "删除",
+  "@modelModelDeleteAction": {
+    "description": "Delete-model confirm action"
+  },
+  "modelModelDeleteTitle": "删除模型？",
+  "@modelModelDeleteTitle": {
+    "description": "Delete-model confirm dialog title"
+  },
+  "modelModelDeleteBody": "将从该供应商移除「{model}」。",
+  "@modelModelDeleteBody": {
+    "description": "Delete-model confirm dialog body",
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "modelModelDeleted": "模型已删除",
+  "@modelModelDeleted": {
+    "description": "Toast when model deleted"
+  },
+  "modelModelDeleteFailed": "模型删除失败",
+  "@modelModelDeleteFailed": {
+    "description": "Toast when model delete failed"
   }
 }

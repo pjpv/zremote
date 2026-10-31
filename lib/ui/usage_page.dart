@@ -6,6 +6,8 @@ import '../models/device.dart';
 import '../models/device_label.dart';
 import '../models/usage_stats.dart';
 import '../services/rpc_bridge.dart';
+import '../state/resume_reload.dart';
+import '../state/service_readiness.dart';
 import '../state/session_status.dart';
 import '../theme.dart';
 import 'bevel_card.dart';
@@ -53,6 +55,10 @@ class _UsagePageState extends ConsumerState<UsagePage> {
   AppUsageSnapshot? _ranged;
   bool _rangedFailed = false;
 
+  int _loadEpoch = 0;
+
+  bool _awaitRecovery = false;
+
   @override
   void initState() {
     super.initState();
@@ -70,7 +76,7 @@ class _UsagePageState extends ConsumerState<UsagePage> {
           'usage-stats',
           method,
           params: params,
-          timeout: const Duration(seconds: 10),
+          timeout: const Duration(seconds: 25),
         );
       } on RpcRemoteException catch (e) {
         final transient =
@@ -82,8 +88,8 @@ class _UsagePageState extends ConsumerState<UsagePage> {
       } on RpcTimeoutException {
         if (attempt >= 3) rethrow;
       }
-      debugPrint('[usage] retry #$attempt for $method in 2s');
-      await Future<void>.delayed(const Duration(seconds: 2));
+      debugPrint('[usage] retry #$attempt for $method in 4s');
+      await Future<void>.delayed(const Duration(seconds: 4));
     }
   }
 
@@ -97,11 +103,12 @@ class _UsagePageState extends ConsumerState<UsagePage> {
   Future<void> _refresh() async {
     if (_refreshing) return;
     _refreshing = true;
+    final epoch = _loadEpoch;
     if (mounted) setState(() {});
     try {
       final r = await _callWithRetry('getAppUsageSnapshot', _usageParams('all'));
       final all = AppUsageSnapshot.fromJson(r.firstObject ?? const {});
-      if (!mounted) return;
+      if (!mounted || epoch != _loadEpoch) return;
       if (all == null) {
         setState(() {
           _phase = _UsagePhase.error;
@@ -116,10 +123,14 @@ class _UsagePageState extends ConsumerState<UsagePage> {
         '[usage] all ok (${all.heatmap?.weeks.length ?? 0} weeks, '
         'tz=${all.timeZone ?? "?"})',
       );
-      await _fetchRanged();
+      await _fetchRanged(epoch);
     } on RpcRemoteException catch (e) {
       debugPrint('[usage] all remote error: ${e.message}');
-      if (!mounted) return;
+      if (!mounted || epoch != _loadEpoch) return;
+      if (e.message.contains('no-services')) {
+        _toNotReady(epoch);
+        return;
+      }
       setState(() {
         _phase = _UsagePhase.error;
         _errorKind = _UsageErrorKind.remote;
@@ -127,20 +138,29 @@ class _UsagePageState extends ConsumerState<UsagePage> {
       });
     } on RpcNotReadyException {
       debugPrint('[usage] all notReady after retries');
-      _toNotReady();
+      _toNotReady(epoch);
     } on RpcTimeoutException {
       debugPrint('[usage] all timeout after retries');
-      _toNotReady();
+      _toNotReady(epoch);
     } catch (e) {
       debugPrint('[usage] all unexpected error $e');
-      _toNotReady();
+      _toNotReady(epoch);
     } finally {
-      _refreshing = false;
-      if (mounted) setState(() {});
+      if (epoch == _loadEpoch) {
+        _refreshing = false;
+        if (mounted) setState(() {});
+      }
     }
   }
 
-  Future<void> _fetchRanged() async {
+  void _restart() {
+    _loadEpoch++;
+    _refreshing = false;
+    _rangeBusy = false;
+    _refresh();
+  }
+
+  Future<void> _fetchRanged(int epoch) async {
     _rangeBusy = true;
     if (mounted) setState(() {});
     try {
@@ -149,7 +169,7 @@ class _UsagePageState extends ConsumerState<UsagePage> {
         _usageParams(_range),
       );
       final ranged = AppUsageSnapshot.fromJson(r.firstObject ?? const {});
-      if (!mounted) return;
+      if (!mounted || epoch != _loadEpoch) return;
       setState(() {
         _ranged = ranged;
         _rangedFailed = ranged == null;
@@ -157,21 +177,24 @@ class _UsagePageState extends ConsumerState<UsagePage> {
       debugPrint('[usage] ranged $_range ok (${ranged?.models.length ?? 0} models)');
     } catch (e) {
       debugPrint('[usage] ranged $_range failed: $e');
-      if (!mounted) return;
-      setState(() {
-        _ranged = null;
-        _rangedFailed = true;
-      });
+      if (mounted && epoch == _loadEpoch) {
+        setState(() {
+          _ranged = null;
+          _rangedFailed = true;
+        });
+      }
     } finally {
-      _rangeBusy = false;
-      if (mounted) setState(() {});
+      if (epoch == _loadEpoch) {
+        _rangeBusy = false;
+        if (mounted) setState(() {});
+      }
     }
   }
 
   void _changeRange(String range) {
     if (range == _range || _rangeBusy || _refreshing) return;
     _range = range;
-    _fetchRanged();
+    _fetchRanged(_loadEpoch);
   }
 
   void _openDayDetail({required String date}) {
@@ -219,8 +242,8 @@ class _UsagePageState extends ConsumerState<UsagePage> {
     return null;
   }
 
-  void _toNotReady() {
-    if (!mounted) return;
+  void _toNotReady(int epoch) {
+    if (!mounted || epoch != _loadEpoch) return;
     setState(() {
       _phase = _UsagePhase.error;
       _errorKind = _UsageErrorKind.notReady;
@@ -233,6 +256,23 @@ class _UsagePageState extends ConsumerState<UsagePage> {
     final l10n = AppLocalizations.of(context)!;
     final status = ref.watch(sessionStatusProvider)[widget.device.id];
     final offline = status != SessionStatus.live;
+    ref.listen(resumeReloadEpochProvider, (prev, next) {
+      if (prev != next && mounted) _awaitRecovery = true;
+    });
+    ref.listen(sessionStatusProvider, (prev, next) {
+      if (!mounted || prev?[widget.device.id] == next[widget.device.id]) {
+        return;
+      }
+      if (next[widget.device.id] != SessionStatus.live) return;
+      final stalled =
+          _awaitRecovery ||
+          (_phase == _UsagePhase.error && _errorKind == _UsageErrorKind.notReady);
+      if (stalled) {
+        _awaitRecovery = false;
+        debugPrint('[usage] live after reload -> restart');
+        _restart();
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -385,7 +425,6 @@ class _UsagePageState extends ConsumerState<UsagePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _HeatmapView(
-            key: const Key('usage-heatmap'),
             weeks: weeks,
             colors: colors,
             labelColor: zt.textTertiary,
@@ -767,8 +806,12 @@ class _UsagePageState extends ConsumerState<UsagePage> {
 
   Widget _errorView(AppLocalizations l10n, bool offline) {
     final remote = _errorKind == _UsageErrorKind.remote;
-    final notReadyText =
-        offline ? l10n.usageDeviceNotReady : l10n.usageServiceUnavailable;
+    final readiness =
+        ref.watch(serviceReadinessProvider)[widget.device.id] ??
+        ServiceReadiness.unknown;
+    final notReadyText = readiness == ServiceReadiness.unavailable
+        ? l10n.sessionNotReadyHint
+        : (offline ? l10n.usageDeviceNotReady : l10n.usageServiceUnavailable);
     final zt = context.zt;
     return Center(
       child: Padding(
@@ -845,7 +888,6 @@ class _TrendSeries {
 
 class _HeatmapView extends StatelessWidget {
   const _HeatmapView({
-    super.key,
     required this.weeks,
     required this.colors,
     required this.labelColor,
@@ -863,36 +905,82 @@ class _HeatmapView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      final pitch = (constraints.maxWidth - _gutter) / 7;
-      return GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapUp: (details) {
-          final x = details.localPosition.dx - _gutter;
-          final y = details.localPosition.dy;
-          final col = (x / pitch).floor();
-          final row = (y / pitch).floor();
-          if (col < 0 || col > 6 || row < 0 || row >= weeks.length) {
-            return;
-          }
-          final days = weeks[row].days;
-          if (col >= days.length) return;
-          final day = days[col];
-          if (day != null) onDayTap(day);
-        },
-        child: CustomPaint(
-          painter: _HeatmapPainter(
-            weeks: weeks,
-            colors: colors,
-            labelColor: labelColor,
-            pitch: pitch,
-            gutter: _gutter,
-            gap: _gap,
+    final l10n = AppLocalizations.of(context)!;
+    final dowLabels = [
+      l10n.usageHeatmapDowMon,
+      l10n.usageHeatmapDowTue,
+      l10n.usageHeatmapDowWed,
+      l10n.usageHeatmapDowThu,
+      l10n.usageHeatmapDowFri,
+      l10n.usageHeatmapDowSat,
+      l10n.usageHeatmapDowSun,
+    ];
+    final columnLabels = List<String?>.filled(7, null);
+    for (var c = 0; c < 7; c++) {
+      for (final w in weeks) {
+        if (c >= w.days.length) continue;
+        final day = w.days[c];
+        if (day == null) continue;
+        final dt = DateTime.tryParse(day.date);
+        if (dt != null) columnLabels[c] = dowLabels[dt.weekday - 1];
+        break;
+      }
+    }
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: _gutter, bottom: 3),
+          child: Row(
+            children: [
+              for (final label in columnLabels)
+                Expanded(
+                  child: Text(
+                    label ?? '',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: labelColor,
+                      fontFamily: kMonoFamily,
+                    ),
+                  ),
+                ),
+            ],
           ),
-          size: Size(constraints.maxWidth, weeks.length * pitch),
         ),
-      );
-    });
+        LayoutBuilder(builder: (context, constraints) {
+          final pitch = (constraints.maxWidth - _gutter) / 7;
+          return GestureDetector(
+            key: const Key('usage-heatmap'),
+            behavior: HitTestBehavior.opaque,
+            onTapUp: (details) {
+              final x = details.localPosition.dx - _gutter;
+              final y = details.localPosition.dy;
+              final col = (x / pitch).floor();
+              final row = (y / pitch).floor();
+              if (col < 0 || col > 6 || row < 0 || row >= weeks.length) {
+                return;
+              }
+              final days = weeks[row].days;
+              if (col >= days.length) return;
+              final day = days[col];
+              if (day != null) onDayTap(day);
+            },
+            child: CustomPaint(
+              painter: _HeatmapPainter(
+                weeks: weeks,
+                colors: colors,
+                labelColor: labelColor,
+                pitch: pitch,
+                gutter: _gutter,
+                gap: _gap,
+              ),
+              size: Size(constraints.maxWidth, weeks.length * pitch),
+            ),
+          );
+        }),
+      ],
+    );
   }
 }
 

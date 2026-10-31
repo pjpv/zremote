@@ -9,6 +9,10 @@ void main() {
       '&mid=00000000-0000-4000-8000-000000000000'
       '&name=DESKTOP-ABC123&app_version=3.10.1';
 
+  const v2Url =
+      'https://zcode.z.ai/remote/v4?app_version=3.16.1&sid=d_test0001'
+      '&mid=00000000-0000-4000-8000-000000000000&name=TEST-DESKTOP';
+
   group('LinkBuilder.parse', () {
     test('官方链接：全部参数入库，label 取 name', () {
       final d = LinkBuilder.parse(sampleUrl)!;
@@ -18,15 +22,29 @@ void main() {
       expect(d.params['app_version'], '3.10.1');
       expect(d.label, 'DESKTOP-ABC123');
       expect(d.baseUrl, 'https://zcode.z.ai/remote/v4');
+      expect(d.kind, DeviceKind.legacy);
+    });
+
+    test('V2 链接（sid+app_version，无 hash）解析为 DeviceKind.v2', () {
+      final d = LinkBuilder.parse(v2Url)!;
+      expect(d.kind, DeviceKind.v2);
+      expect(d.sid, 'd_test0001');
+      expect(d.params['app_version'], '3.16.1');
+      expect(d.params.containsKey('hash'), isFalse);
+      expect(d.label, 'TEST-DESKTOP');
+    });
+
+    test('sid 存在但既无 hash 也无 app_version → 拒收', () {
+      const url = 'https://zcode.z.ai/remote/v4?sid=s&t=1';
+      expect(LinkBuilder.parse(url), isNull);
+      expect(
+        LinkBuilder.parse('https://zcode.z.ai/remote/v4?sid=s&app_version='),
+        isNull,
+      );
     });
 
     test('缺 sid 拒收', () {
       const url = 'https://zcode.z.ai/remote/v4?hash=x&t=1&mid=m&name=n';
-      expect(LinkBuilder.parse(url), isNull);
-    });
-
-    test('缺 hash 拒收', () {
-      const url = 'https://zcode.z.ai/remote/v4?sid=s&t=1';
       expect(LinkBuilder.parse(url), isNull);
     });
 
@@ -85,6 +103,20 @@ void main() {
       expect(d.params, before);
       expect(d.params.containsKey('t'), isTrue);
     });
+
+    test('V2 不追加 t，参数原样', () {
+      final d = LinkBuilder.parse(v2Url)!;
+      final before = Map.of(d.params);
+      final uri = LinkBuilder.buildUrl(
+        d,
+        now: DateTime.fromMillisecondsSinceEpoch(1790000000000),
+      );
+
+      expect(uri.queryParameters.containsKey('t'), isFalse);
+      expect(uri.queryParameters['sid'], 'd_test0001');
+      expect(uri.queryParameters['app_version'], '3.16.1');
+      expect(d.params, before);
+    });
   });
 
   group('RemoteDevice', () {
@@ -109,6 +141,30 @@ void main() {
       expect(r.label, '工作机');
       expect(r.id, d.id);
       expect(r.params, d.params);
+    });
+
+    test('JSON 往返保留 kind：legacy 与 v2 各一', () {
+      for (final raw in [sampleUrl, v2Url]) {
+        final d = LinkBuilder.parse(raw)!;
+        final restored = RemoteDevice.fromJson(d.toJson());
+        expect(restored.kind, d.kind);
+        expect(restored.toJson()['kind'], d.kind.name);
+      }
+    });
+
+    test('fromJson 缺 kind → legacy', () {
+      final json = LinkBuilder.parse(sampleUrl)!.toJson()..remove('kind');
+      expect(RemoteDevice.fromJson(json).kind, DeviceKind.legacy);
+    });
+
+    test('fromJson 未知 kind → legacy', () {
+      final json = LinkBuilder.parse(v2Url)!.toJson()..['kind'] = 'v9';
+      expect(RemoteDevice.fromJson(json).kind, DeviceKind.legacy);
+    });
+
+    test('copyWith 未传 kind 时保留原值', () {
+      final d = LinkBuilder.parse(v2Url)!;
+      expect(d.copyWith(label: '改名').kind, DeviceKind.v2);
     });
   });
 }

@@ -12,12 +12,14 @@ class SidePanelDrawer extends StatelessWidget {
     required this.onAutomationPressed,
     required this.onClaimPressed,
     required this.onUsagePressed,
+    required this.onModelSettingsPressed,
   });
 
   final RemoteDevice device;
   final VoidCallback onAutomationPressed;
   final VoidCallback onClaimPressed;
   final VoidCallback onUsagePressed;
+  final VoidCallback onModelSettingsPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -26,6 +28,7 @@ class SidePanelDrawer extends StatelessWidget {
       onAutomationPressed: onAutomationPressed,
       onClaimPressed: onClaimPressed,
       onUsagePressed: onUsagePressed,
+      onModelSettingsPressed: onModelSettingsPressed,
     );
   }
 }

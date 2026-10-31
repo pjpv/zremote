@@ -1,9 +1,12 @@
+enum DeviceKind { legacy, v2 }
+
 class RemoteDevice {
   final String id;
   final String baseUrl;
   final Map<String, String> params;
   final String label;
   final DateTime createdAt;
+  final DeviceKind kind;
 
   RemoteDevice({
     required this.id,
@@ -11,6 +14,7 @@ class RemoteDevice {
     required this.params,
     required this.label,
     required this.createdAt,
+    this.kind = DeviceKind.legacy,
   });
 
   String get sid => params['sid'] ?? '';
@@ -23,6 +27,7 @@ class RemoteDevice {
     'params': params,
     'label': label,
     'createdAt': createdAt.toIso8601String(),
+    'kind': kind.name,
   };
 
   static RemoteDevice fromJson(Map<String, dynamic> json) => RemoteDevice(
@@ -33,13 +38,18 @@ class RemoteDevice {
     ),
     label: json['label'] as String,
     createdAt: DateTime.parse(json['createdAt'] as String),
+    kind: DeviceKind.values.firstWhere(
+      (k) => k.name == (json['kind'] as String? ?? 'legacy'),
+      orElse: () => DeviceKind.legacy,
+    ),
   );
 
-  RemoteDevice copyWith({String? label}) => RemoteDevice(
+  RemoteDevice copyWith({String? label, DeviceKind? kind}) => RemoteDevice(
     id: id,
     baseUrl: baseUrl,
     params: Map.of(params),
     label: label ?? this.label,
     createdAt: createdAt,
+    kind: kind ?? this.kind,
   );
 }
