@@ -2050,5 +2050,9 @@
   "modelModelDeleteFailed": "模型删除失败",
   "@modelModelDeleteFailed": {
     "description": "Toast when model delete failed"
+  },
+  "openBrowserFailed": "无法打开浏览器，请确认系统已安装浏览器",
+  "@openBrowserFailed": {
+    "description": "Snackbar when a page-requested popup (e.g. OAuth login) cannot be handed to a system browser"
   }
 }
