@@ -1315,5 +1315,6 @@
   "modelModelDeleteFailed": "Failed to delete model",
   "@modelModelDeleteFailed": {
     "description": "Toast when model delete failed"
-  }
+  },
+  "openBrowserFailed": "Couldn't open the browser. Make sure a browser is installed."
 }

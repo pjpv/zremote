@@ -19,6 +19,7 @@ import '../services/resume_health.dart';
 import '../services/service_probe.dart';
 import '../services/session_jump.dart';
 import '../services/web_theme.dart';
+import '../services/webview_popup.dart';
 import '../services/webview_profile.dart';
 import '../state/active_session.dart';
 import '../state/app_lifecycle.dart';
@@ -92,6 +93,24 @@ class _SessionViewState extends ConsumerState<SessionView> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   bool? _appliedWebDark;
+
+  // 页面的 window.open（含“通过浏览器授权登录”）经此转交系统浏览器。
+  late final WebViewPopupRouter _popupRouter = WebViewPopupRouter(
+    openExternal: ExternalBrowser.open,
+    onOpenFailed: _showOpenBrowserFailed,
+    onExternalLaunch: () => _externalReturn.noteLaunch(DateTime.now()),
+  );
+
+  // 用户被送去系统浏览器授权期间 App 会退到后台；回来时不能让自动恢复逻辑把
+  // 正在等待授权结果的页面刷新掉（登录页上业务服务未就绪，写通道探测必然失败）。
+  final ExternalReturnGuard _externalReturn = ExternalReturnGuard();
+
+  void _showOpenBrowserFailed() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppLocalizations.of(context)!.openBrowserFailed)),
+    );
+  }
 
   @override
   void didChangeDependencies() {
@@ -173,6 +192,14 @@ class _SessionViewState extends ConsumerState<SessionView> {
       '[zr-resume] check rendererGone=$_rendererGone status=$status '
       'wsIdle=${wsIdle.inSeconds}s -> $signal',
     );
+    if ((signal == ResumeSignal.verifyWritePath ||
+            signal == ResumeSignal.armGrace) &&
+        _externalReturn.consumeReturn(now)) {
+      // 刚从系统浏览器（授权）回来：跳过这一次自动探测 / 宽限后重载，页面原样保留。
+      _resumeWatch.clearGrace();
+      debugPrint('[zr-resume] skip $signal: returning from external browser');
+      return;
+    }
     switch (signal) {
       case ResumeSignal.none:
       case ResumeSignal.keepGrace:
@@ -723,6 +750,7 @@ class _SessionViewState extends ConsumerState<SessionView> {
     _rpcBridge?.dispose();
     _dispatchServer?.dispose();
     _resumeGrace?.cancel();
+    _popupRouter.dispose();
     super.dispose();
   }
 
@@ -956,7 +984,18 @@ class _SessionViewState extends ConsumerState<SessionView> {
                         transparentBackground: true,
                         useHybridComposition: false,
                         androidWebProfile: webProfileNameFor(widget.device),
+                        // Android WebView 默认不支持多窗口，window.open 会静默返回
+                        // null；页面的“通过浏览器授权登录”正是 window.open。开启后
+                        // 由 onCreateWindow 接管。授权经用户点击后要等电脑端返回地址
+                        // 才 window.open，可能超出瞬时用户激活期，故允许脚本自动开窗。
+                        supportMultipleWindows: true,
+                        javaScriptCanOpenWindowsAutomatically: true,
                       ),
+                      onCreateWindow: (_, action) => _popupRouter
+                          .onCreateWindow(
+                            action,
+                            profileName: webProfileNameFor(widget.device),
+                          ),
                       onRenderProcessGone: (_, detail) {
                         debugPrint('[zr-resume] rendererGone detail=$detail');
                         _rendererGone = true;
